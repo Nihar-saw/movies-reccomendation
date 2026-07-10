@@ -24,15 +24,29 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
 
   if (!movie) return null;
 
-  const backdrop = movie.backdropPath ||
-    `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80`;
-  const poster = movie.posterPath ||
-    `https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=600&fit=crop&q=70`;
+  const movieId = movie.id || movie.movieId;
 
-  const cast = movie.cast || [];
-  const reviews = movie.reviews || [];
+  const backdrop = movie.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
+    : movie.backdropPath ||
+      `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80`;
+
+  const poster = movie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+    : movie.posterPath ||
+      `https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=600&fit=crop&q=70`;
+
+  const cast = movie.credits?.cast || movie.cast || [];
+  const reviews = movie.reviews?.results || movie.reviews || [];
   const pros = movie.pros || ['Compelling storyline', 'Outstanding performances', 'Stunning cinematography'];
   const cons = movie.cons || ['Pacing slows in mid-section', 'Some plot points left unresolved'];
+
+  const genresList = (movie.genres || []).map(g => typeof g === 'string' ? g : g.name);
+  const releaseYear = movie.release_date
+    ? new Date(movie.release_date).getFullYear()
+    : movie.releaseDate
+    ? new Date(movie.releaseDate).getFullYear()
+    : null;
 
   const tabs = ['overview', 'cast', 'ai-analysis'];
 
@@ -57,13 +71,13 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             {/* Rating Card */}
             <div style={{ background: 'var(--card-color)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '16px', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>IMDb Rating</span>
-                <StarRating value={movie.voteAverage || 8.5} />
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Rating</span>
+                <StarRating value={movie.vote_average || movie.voteAverage || 0} />
               </div>
-              {movie.matchScore && (
+              {(movie.matchScore || movie.confidence) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>AI Match</span>
-                  <span style={{ color: 'var(--success-accent)', fontWeight: 700, fontSize: 16 }}>🤖 {movie.matchScore}%</span>
+                  <span style={{ color: 'var(--success-accent)', fontWeight: 700, fontSize: 16 }}>🤖 {movie.matchScore || Math.round((movie.confidence || 0) * 100)}%</span>
                 </div>
               )}
               {movie.runtime && (
@@ -76,14 +90,14 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
               {/* Action Buttons */}
               <button
                 className={`btn ${isFavorited ? 'btn-danger' : 'btn-secondary'}`}
-                onClick={() => onFavorite?.(movie.id)}
+                onClick={() => onFavorite?.(movieId)}
                 style={{ width: '100%', justifyContent: 'center', padding: '10px 16px', fontSize: 14, borderRadius: 10, background: isFavorited ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isFavorited ? '#EF4444' : 'var(--card-border)'}`, color: isFavorited ? '#EF4444' : 'white', cursor: 'pointer', fontWeight: 600 }}
               >
                 {isFavorited ? '❤️ Favorited' : '🤍 Add to Favorites'}
               </button>
               <button
                 className="btn btn-secondary"
-                onClick={() => onWatchlist?.(movie.id)}
+                onClick={() => onWatchlist?.(movieId)}
                 style={{ width: '100%', justifyContent: 'center', padding: '10px 16px', fontSize: 14, borderRadius: 10, background: isWatchlisted ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isWatchlisted ? 'var(--primary-accent)' : 'var(--card-border)'}`, color: isWatchlisted ? 'var(--primary-accent)' : 'white', cursor: 'pointer', fontWeight: 600 }}
               >
                 {isWatchlisted ? '📺 In Watchlist' : '➕ Add to Watchlist'}
@@ -95,12 +109,12 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
           <div className="movie-detail-info-column">
             {/* Genres */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-              {(movie.genres || []).map(g => (
+              {genresList.map(g => (
                 <span key={g} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#C7D2FE', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{g}</span>
               ))}
-              {movie.releaseDate && (
+              {releaseYear && (
                 <span style={{ background: 'rgba(255,255,255,0.07)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {new Date(movie.releaseDate).getFullYear()}
+                  {releaseYear}
                 </span>
               )}
             </div>
@@ -132,7 +146,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                   <>
                     <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Community Reviews</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                      {reviews.map((rev, i) => (
+                      {reviews.slice(0, 3).map((rev, i) => (
                         <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
                           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>@{rev.author}</div>
                           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{rev.content}</p>
@@ -147,13 +161,18 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             {activeTab === 'cast' && (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 <div className="cast-row">
-                  {cast.map((member, i) => (
-                    <div key={i} className="cast-member-card">
-                      <div className="cast-member-avatar" style={{ backgroundImage: `url(${member.profile_path})` }} />
-                      <div className="cast-member-name">{member.name}</div>
-                      <div className="cast-member-char">{member.character}</div>
-                    </div>
-                  ))}
+                  {cast.slice(0, 10).map((member, i) => {
+                    const profilePath = member.profile_path
+                      ? `https://image.tmdb.org/t/p/w185${member.profile_path}`
+                      : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+                    return (
+                      <div key={i} className="cast-member-card">
+                        <div className="cast-member-avatar" style={{ backgroundImage: `url(${profilePath})` }} />
+                        <div className="cast-member-name">{member.name}</div>
+                        <div className="cast-member-char">{member.character}</div>
+                      </div>
+                    );
+                  })}
                   {cast.length === 0 && <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>Cast information not available.</p>}
                 </div>
               </div>
@@ -161,10 +180,10 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
 
             {activeTab === 'ai-analysis' && (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                {movie.aiExplanation && (
+                {(movie.aiExplanation || movie.reason) && (
                   <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#C7D2FE', marginBottom: 8 }}>🤖 Why CineAI Recommends This</div>
-                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{movie.aiExplanation}</p>
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{movie.aiExplanation || movie.reason}</p>
                   </div>
                 )}
                 <div className="pros-cons-grid">

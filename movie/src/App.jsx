@@ -63,16 +63,28 @@ export default function App() {
   const [allMovies, setAllMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Restore session
+  // Restore session & load profile data
   useEffect(() => {
-    const savedToken = localStorage.getItem('cineai_token');
-    const isMock = localStorage.getItem('cineai_mock_mode') === 'true';
-    if (savedToken || isMock) {
-      setUser(isMock
-        ? { name: 'Demo User', email: 'demo@cineai.com', avatar: 'D' }
-        : { name: 'User', email: 'user@cineai.com', avatar: 'U' }
-      );
-    }
+    const loadProfile = async () => {
+      const savedToken = localStorage.getItem('cineai_token');
+      if (savedToken) {
+        try {
+          const res = await api.getProfile();
+          if (res.success && res.user) {
+            setUser(res.user);
+            setFavorites(res.user.favorites || []);
+            setWatchlist(res.user.watchlist || []);
+          }
+          const historyRes = await api.getHistory();
+          if (historyRes) {
+            setHistory(historyRes.history || historyRes || []);
+          }
+        } catch (e) {
+          console.error('Failed to load user profile on mount:', e);
+        }
+      }
+    };
+    loadProfile();
   }, []);
 
   // Pre-load all movies for favorites/watchlist resolution
@@ -93,6 +105,8 @@ export default function App() {
 
   const handleLogin = (userData, userToken) => {
     setUser(userData);
+    setFavorites(userData.favorites || []);
+    setWatchlist(userData.watchlist || []);
     setActiveView('home');
   };
 
@@ -100,27 +114,47 @@ export default function App() {
     localStorage.removeItem('cineai_token');
     localStorage.removeItem('cineai_mock_mode');
     setUser(null);
+    setFavorites([]);
+    setWatchlist([]);
     setActiveView('home');
     setSelectedMovie(null);
   };
 
-  const handleFavorite = useCallback((movieId) => {
-    setFavorites(prev =>
-      prev.includes(movieId) ? prev.filter(id => id !== movieId) : [...prev, movieId]
-    );
-  }, []);
+  const handleFavorite = useCallback(async (movieId) => {
+    try {
+      if (favorites.includes(movieId)) {
+        setFavorites(prev => prev.filter(id => id !== movieId));
+        await api.removeFavorite(movieId);
+      } else {
+        setFavorites(prev => [...prev, movieId]);
+        await api.addFavorite(movieId);
+      }
+    } catch (e) {
+      console.error('Error toggling favorite:', e);
+    }
+  }, [favorites]);
 
-  const handleWatchlist = useCallback((movieId) => {
-    setWatchlist(prev =>
-      prev.includes(movieId) ? prev.filter(id => id !== movieId) : [...prev, movieId]
-    );
-  }, []);
+  const handleWatchlist = useCallback(async (movieId) => {
+    try {
+      if (watchlist.includes(movieId)) {
+        setWatchlist(prev => prev.filter(id => id !== movieId));
+        await api.removeWatchlist(movieId);
+      } else {
+        setWatchlist(prev => [...prev, movieId]);
+        await api.addWatchlist(movieId);
+      }
+    } catch (e) {
+      console.error('Error toggling watchlist:', e);
+    }
+  }, [watchlist]);
 
   const handleSelectMovie = useCallback((movie) => {
     setSelectedMovie(movie);
+    const movieId = movie.id || movie.movieId;
+    // Post to watch history endpoint
+    api.addHistory(movieId, 120, false).catch(() => {});
     setHistory(prev => {
-      const id = movie.id || movie.movieId;
-      return prev.find(m => (m.id || m.movieId) === id) ? prev : [movie, ...prev].slice(0, 20);
+      return prev.find(m => (m.id || m.movieId) === movieId) ? prev : [movie, ...prev].slice(0, 20);
     });
   }, []);
 

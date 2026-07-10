@@ -3,31 +3,31 @@ import MovieCard from '../components/MovieCard.jsx';
 import { api } from '../api/api.js';
 
 const GENRES = [
-  { id: 'sci-fi', name: 'Science Fiction', emoji: '🚀', color: '#6366F1' },
-  { id: 'thriller', name: 'Thriller', emoji: '🎭', color: '#8B5CF6' },
-  { id: 'drama', name: 'Drama', emoji: '🎬', color: '#10B981' },
-  { id: 'action', name: 'Action', emoji: '💥', color: '#F59E0B' },
-  { id: 'mystery', name: 'Mystery', emoji: '🔍', color: '#EF4444' },
-  { id: 'romance', name: 'Romance', emoji: '❤️', color: '#EC4899' },
-  { id: 'comedy', name: 'Comedy', emoji: '😂', color: '#14B8A6' },
-  { id: 'horror', name: 'Horror', emoji: '👻', color: '#7C3AED' },
+  { id: 878, name: 'Science Fiction', emoji: '🚀', color: '#6366F1' },
+  { id: 53, name: 'Thriller', emoji: '🎭', color: '#8B5CF6' },
+  { id: 18, name: 'Drama', emoji: '🎬', color: '#10B981' },
+  { id: 28, name: 'Action', emoji: '💥', color: '#F59E0B' },
+  { id: 9648, name: 'Mystery', emoji: '🔍', color: '#EF4444' },
+  { id: 10749, name: 'Romance', emoji: '❤️', color: '#EC4899' },
+  { id: 35, name: 'Comedy', emoji: '😂', color: '#14B8A6' },
+  { id: 27, name: 'Horror', emoji: '👻', color: '#7C3AED' },
 ];
 
 export default function Discover({ onSelectMovie, favorites, watchlist, onFavorite, onWatchlist }) {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedGenre, setSelectedGenre] = useState(null);
+  const [selectedGenreId, setSelectedGenreId] = useState(null);
 
   useEffect(() => {
     const loadMovies = async () => {
       setLoading(true);
       try {
         const result = await api.getTrendingMovies();
-        const all = result.results || result;
-        const filtered = selectedGenre
-          ? all.filter(m => (m.genres || []).some(g => g.toLowerCase().includes(selectedGenre.toLowerCase())))
+        const all = result.results || result || [];
+        const filtered = selectedGenreId
+          ? all.filter(m => (m.genre_ids || []).includes(selectedGenreId))
           : all;
-        setMovies(filtered.length > 0 ? filtered : all);
+        setMovies(filtered);
       } catch (err) {
         console.error(err);
       } finally {
@@ -35,7 +35,7 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
       }
     };
     loadMovies();
-  }, [selectedGenre]);
+  }, [selectedGenreId]);
 
   return (
     <div className="page-container">
@@ -54,12 +54,12 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
         <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 18 }}>🎭 Browse by Genre</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 }}>
           <button
-            onClick={() => setSelectedGenre(null)}
+            onClick={() => setSelectedGenreId(null)}
             style={{
               padding: '18px 12px', borderRadius: 'var(--radius-lg)', border: '1px solid',
-              borderColor: !selectedGenre ? 'var(--primary-accent)' : 'var(--card-border)',
-              background: !selectedGenre ? 'rgba(99,102,241,0.15)' : 'var(--card-color)',
-              color: !selectedGenre ? 'white' : 'var(--text-secondary)',
+              borderColor: !selectedGenreId ? 'var(--primary-accent)' : 'var(--card-border)',
+              background: !selectedGenreId ? 'rgba(99,102,241,0.15)' : 'var(--card-color)',
+              color: !selectedGenreId ? 'white' : 'var(--text-secondary)',
               cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 14,
               transition: 'all 0.2s ease'
             }}
@@ -70,12 +70,12 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
           {GENRES.map(genre => (
             <button
               key={genre.id}
-              onClick={() => setSelectedGenre(genre.name)}
+              onClick={() => setSelectedGenreId(genre.id)}
               style={{
                 padding: '18px 12px', borderRadius: 'var(--radius-lg)', border: '1px solid',
-                borderColor: selectedGenre === genre.name ? genre.color : 'var(--card-border)',
-                background: selectedGenre === genre.name ? `${genre.color}20` : 'var(--card-color)',
-                color: selectedGenre === genre.name ? 'white' : 'var(--text-secondary)',
+                borderColor: selectedGenreId === genre.id ? genre.color : 'var(--card-border)',
+                background: selectedGenreId === genre.id ? `${genre.color}20` : 'var(--card-color)',
+                color: selectedGenreId === genre.id ? 'white' : 'var(--text-secondary)',
                 cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 14,
                 transition: 'all 0.2s ease'
               }}
@@ -89,7 +89,7 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
 
       {/* Movies Grid */}
       <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 22 }}>
-        {selectedGenre ? `${selectedGenre} Movies` : 'All Movies'}
+        {selectedGenreId ? `${GENRES.find(g => g.id === selectedGenreId)?.name} Movies` : 'All Movies'}
         <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 12 }}>{movies.length} titles</span>
       </h2>
 
