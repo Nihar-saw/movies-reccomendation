@@ -10,14 +10,6 @@ const QUICK_PROMPTS = [
   '🎭 Oscar-winning dramas',
 ];
 
-const MOCK_MOVIES_MAP = {
-  157336: { title: 'Interstellar', poster: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=200&fit=crop&q=60' },
-  27205: { title: 'Inception', poster: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=200&fit=crop&q=60' },
-  155: { title: 'The Dark Knight', poster: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=200&fit=crop&q=60' },
-  603: { title: 'The Matrix', poster: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=200&fit=crop&q=60' },
-  278: { title: 'Shawshank Redemption', poster: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=200&fit=crop&q=60' },
-  11324: { title: 'Shutter Island', poster: 'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=200&fit=crop&q=60' },
-};
 
 export default function Assistant({ user, onSelectMovie }) {
   const [messages, setMessages] = useState([
@@ -46,9 +38,21 @@ export default function Assistant({ user, onSelectMovie }) {
       const result = await api.chat(text);
       const resp = result?.response || result;
       const responseText = typeof resp === 'string' ? resp : (resp?.text || 'Here are some movies you might enjoy!');
-      const movieIds = Array.isArray(resp?.movies) ? resp.movies : [];
+      let movieIds = Array.isArray(resp?.movies) ? resp.movies : [];
 
-      const aiMsg = { id: Date.now() + 1, role: 'ai', text: responseText, movies: movieIds };
+      let fetchedMovies = [];
+      if (movieIds.length > 0) {
+        // AI might return full movie objects or just IDs, handle both
+        if (typeof movieIds[0] === 'object' && movieIds[0].title) {
+          fetchedMovies = movieIds;
+        } else {
+          const promises = movieIds.map(id => api.getMovieDetails(id).catch(() => null));
+          const responses = await Promise.all(promises);
+          fetchedMovies = responses.filter(Boolean).map(r => r.movie || r.data || r);
+        }
+      }
+
+      const aiMsg = { id: Date.now() + 1, role: 'ai', text: responseText, movies: fetchedMovies };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
       setMessages(prev => [...prev, {
@@ -102,14 +106,16 @@ export default function Assistant({ user, onSelectMovie }) {
               {/* Movie mini cards */}
               {msg.movies?.length > 0 && (
                 <div className="chat-bubble-movies" style={{ width: msg.role === 'ai' ? '90%' : '80%', alignSelf: 'flex-start' }}>
-                  {msg.movies.map(id => {
-                    const m = MOCK_MOVIES_MAP[id];
+                  {msg.movies.map(m => {
                     if (!m) return null;
+                    const id = m.id || m.movieId;
+                    const title = m.title;
+                    const poster = m.posterPath || m.poster_path;
                     return (
-                      <div key={id} className="chat-movie-mini-card" onClick={() => onSelectMovie({ id, title: m.title, posterPath: m.poster, genres: ['Drama'], voteAverage: 8.5 })}>
-                        <div className="chat-movie-mini-poster" style={{ backgroundImage: `url(${m.poster})` }} />
+                      <div key={id} className="chat-movie-mini-card" onClick={() => onSelectMovie(m)}>
+                        <div className="chat-movie-mini-poster" style={{ backgroundImage: `url(${poster})` }} />
                         <div className="chat-movie-mini-info">
-                          <div className="chat-movie-mini-title">{m.title}</div>
+                          <div className="chat-movie-mini-title">{title}</div>
                         </div>
                       </div>
                     );
