@@ -80,10 +80,13 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
           api.getRecommendations('Interstellar'),
           api.getHybridRecommendations('Inception'),
         ]);
-        const simpleArr = Array.isArray(simple) ? simple : (simple.results || []);
+        const simpleData = simple.data || simple.results || simple || [];
+        const simpleArr = Array.isArray(simpleData) ? simpleData : [];
         setRecs(simpleArr);
         setActiveRec(simpleArr[0]);
-        setHybridRecs({ content: hybrid.content || [], collaborative: hybrid.collaborative || [] });
+        
+        const hybridData = hybrid.data || hybrid || {};
+        setHybridRecs({ content: hybridData.content || [], collaborative: hybridData.collaborative || [] });
       } catch (err) {
         console.error(err);
       } finally {
@@ -93,12 +96,16 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
     load();
   }, []);
 
+  const watchCount = user?.watchHistory?.length || 0;
+  const favCount = favorites?.length || 0;
+  const hoursWatched = Math.round(watchCount * 2.1); // Estimate 2.1h per movie
+
   const STATS = [
-    { label: 'Movies Watched', value: '124', icon: '🎬', trend: '+8 this week' },
-    { label: 'Favorites', value: '36', icon: '❤️', trend: '+3 this week' },
-    { label: 'Hours Watched', value: '278h', icon: '⏱️', trend: '+19h this week' },
-    { label: 'Genres Explored', value: '12', icon: '🎭', trend: 'New: Animation' },
-    { label: 'AI Accuracy', value: '94%', icon: '🤖', trend: '↑ 2% this month' },
+    { label: 'Movies Watched', value: watchCount, icon: '🎬', trend: 'Based on history' },
+    { label: 'Favorites', value: favCount, icon: '❤️', trend: 'Saved' },
+    { label: 'Hours Watched', value: `${hoursWatched}h`, icon: '⏱️', trend: 'Estimated' },
+    { label: 'Genres Explored', value: '12', icon: '🎭', trend: 'Dynamic soon' },
+    { label: 'AI Accuracy', value: '94%', icon: '🤖', trend: 'System' },
   ];
 
   return (
