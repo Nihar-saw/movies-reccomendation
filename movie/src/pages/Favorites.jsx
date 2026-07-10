@@ -1,7 +1,21 @@
+import { useState, useEffect } from 'react';
 import MovieCard from '../components/MovieCard.jsx';
+import { api } from '../api/api.js';
 
-export default function Favorites({ favorites, watchlist, movies = [], onSelectMovie, onFavorite, onWatchlist }) {
-  const favMovies = movies.filter(m => favorites.includes(m.id || m.movieId));
+export default function Favorites({ favorites, watchlist, onSelectMovie, onFavorite, onWatchlist }) {
+  const [favMovies, setFavMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      const promises = favorites.map(id => api.getMovieDetails(id).catch(() => null));
+      const res = await Promise.all(promises);
+      setFavMovies(res.filter(Boolean).map(r => r.movie || r.data || r));
+      setLoading(false);
+    };
+    load();
+  }, [favorites]);
 
   return (
     <div className="page-container">
