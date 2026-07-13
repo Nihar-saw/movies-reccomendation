@@ -186,11 +186,7 @@ export default function App() {
     setActiveView('search');
   }, []);
 
-  const PROTECTED = ['favorites', 'watchlist', 'history', 'profile', 'assistant', 'admin', 'recommendations'];
-  if (!user && PROTECTED.includes(activeView)) {
-    return <Auth onLogin={handleLogin} />;
-  }
-  if (activeView === 'auth' && !user) {
+  if (!user) {
     return <Auth onLogin={handleLogin} />;
   }
 
