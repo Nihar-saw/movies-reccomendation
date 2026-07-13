@@ -19,6 +19,11 @@ export const api = {
   addHistory: userApi.addHistory,
   getHistory: userApi.getHistory,
 
+  // Ratings
+  rateMovie: userApi.rateMovie,
+  getAverageRating: userApi.getAverageRating,
+  getUserRating: userApi.getUserRating,
+
   // Movie Data API
   getTrendingMovies: movieApi.getTrendingMovies,
   getPopularMovies: movieApi.getPopularMovies,
@@ -35,3 +40,4 @@ export const api = {
   // AI Chat API
   chat: recommendationApi.chat,
 };
+

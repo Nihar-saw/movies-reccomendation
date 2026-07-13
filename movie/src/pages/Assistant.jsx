@@ -70,7 +70,7 @@ export default function Assistant({ user, onSelectMovie }) {
   const renderText = (text) => {
     // Bold markdown with **text**
     return text.split(/\*\*(.+?)\*\*/).map((part, i) =>
-      i % 2 === 1 ? <strong key={i} style={{ color: 'white' }}>{part}</strong> : part
+      i % 2 === 1 ? <strong key={i} style={{ color: 'var(--primary-accent)' }}>{part}</strong> : part
     );
   };
 

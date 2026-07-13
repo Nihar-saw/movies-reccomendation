@@ -72,7 +72,7 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
               </div>
               {NOTIFS.map(n => (
                 <div key={n.id} style={{
-                  padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)',
                   background: n.unread ? 'rgba(99,102,241,0.04)' : 'transparent', cursor: 'pointer'
                 }}>
                   <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 4 }}>{n.text}</div>
@@ -106,13 +106,13 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
                 ].map(item => (
                   <button key={item.view} onClick={() => { setActiveView(item.view); setShowUserMenu(false); }}
                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 20px', background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 14 }}
-                    onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseEnter={e => e.target.style.background = 'rgba(0,0,0,0.05)'}
                     onMouseLeave={e => e.target.style.background = 'none'}
                   >
                     {item.label}
                   </button>
                 ))}
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+                <div style={{ height: 1, background: 'rgba(0,0,0,0.07)' }} />
                 <button onClick={() => { onLogout(); setShowUserMenu(false); }}
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '14px 20px', background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
                   🚪 Sign Out

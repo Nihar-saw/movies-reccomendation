@@ -43,4 +43,21 @@ export const userApi = {
     const response = await axiosInstance.post('/history', { movieId, duration, completed });
     return response.data;
   },
+
+  // Ratings
+  rateMovie: async (movieId, rating) => {
+    const response = await axiosInstance.post('/ratings', { movieId, rating });
+    return response.data;
+  },
+
+  getAverageRating: async (movieId) => {
+    const response = await axiosInstance.get(`/ratings/average/${movieId}`);
+    return response.data;
+  },
+
+  getUserRating: async (movieId) => {
+    const response = await axiosInstance.get(`/ratings/user/${movieId}`);
+    return response.data;
+  },
 };
+

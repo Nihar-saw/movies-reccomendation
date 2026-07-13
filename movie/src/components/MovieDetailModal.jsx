@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../api/api.js';
 
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -6,21 +7,90 @@ const CloseIcon = () => (
   </svg>
 );
 
-const StarRating = ({ value }) => (
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#FBBF24', fontWeight: 700, fontSize: 16 }}>
-    ⭐ {Number(value).toFixed(1)}
-  </span>
-);
+function StarRatingInput({ value, onChange, disabled }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          onClick={() => !disabled && onChange(star)}
+          onMouseEnter={() => !disabled && setHover(star)}
+          onMouseLeave={() => !disabled && setHover(0)}
+          style={{
+            fontSize: 30, background: 'none', border: 'none', cursor: disabled ? 'default' : 'pointer',
+            color: star <= (hover || value) ? '#FBBF24' : '#D1D5DB',
+            transition: 'all 0.15s ease',
+            transform: star <= (hover || value) ? 'scale(1.15)' : 'scale(1)',
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
+          }}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchlist, isFavorited, isWatchlisted }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [rating, setRating] = useState(0);
+  const [userRating, setUserRating] = useState(0);
+  const [communityRating, setCommunityRating] = useState(null);
+  const [communityCount, setCommunityCount] = useState(0);
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingMessage, setRatingMessage] = useState('');
 
   // Prevent body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
+
+  // Load ratings when movie changes
+  useEffect(() => {
+    if (!movie) return;
+    const movieId = movie.id || movie.movieId;
+
+    // Fetch community average
+    api.getAverageRating(movieId)
+      .then(data => {
+        if (data.success) {
+          setCommunityRating(data.averageRating);
+          setCommunityCount(data.totalRatings);
+        }
+      })
+      .catch(() => {});
+
+    // Fetch user's own rating
+    api.getUserRating(movieId)
+      .then(data => {
+        if (data.success && data.rating) {
+          setUserRating(data.rating);
+        }
+      })
+      .catch(() => {});
+  }, [movie]);
+
+  const handleRatingSubmit = async (star) => {
+    setUserRating(star);
+    setRatingSubmitting(true);
+    setRatingMessage('');
+    try {
+      const movieId = movie.id || movie.movieId;
+      await api.rateMovie(movieId, star);
+      setRatingMessage(`You rated this ${star}/5 ⭐`);
+      // Refresh community average
+      const data = await api.getAverageRating(movieId);
+      if (data.success) {
+        setCommunityRating(data.averageRating);
+        setCommunityCount(data.totalRatings);
+      }
+    } catch (e) {
+      setRatingMessage('Could not save rating. Please try again.');
+    } finally {
+      setRatingSubmitting(false);
+    }
+  };
 
   if (!movie) return null;
 
@@ -48,57 +118,121 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
     ? new Date(movie.releaseDate).getFullYear()
     : null;
 
+  const tmdbRating = movie.vote_average || movie.voteAverage || 0;
+  const voteCount = movie.vote_count || movie.voteCount || 0;
+
+  const runtime = movie.runtime
+    ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
+    : null;
+
   const tabs = ['overview', 'cast', 'ai-analysis'];
+
+  const metaStyle = { fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 };
+  const valueStyle = { fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content glass" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
         {/* Close Button */}
-        <button className="modal-close" onClick={onClose}>
+        <button className="modal-close" style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none' }} onClick={onClose}>
           <CloseIcon />
         </button>
 
         {/* Backdrop */}
-        <div className="movie-detail-backdrop" style={{ backgroundImage: `url(${backdrop})` }}>
-          <div className="movie-detail-backdrop-overlay" />
+        <div style={{
+          width: '100%', height: 280, backgroundImage: `url(${backdrop})`,
+          backgroundSize: 'cover', backgroundPosition: 'center top',
+          position: 'relative', borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0',
+          overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(255,255,255,0.98) 100%)'
+          }} />
         </div>
 
         {/* Main Info Section */}
-        <div className="movie-detail-main">
+        <div style={{ display: 'flex', gap: 32, padding: '0 36px 36px', marginTop: -80, position: 'relative', zIndex: 2 }}>
           {/* Poster Column */}
-          <div className="movie-detail-poster-column">
-            <img src={poster} alt={movie.title} className="movie-detail-poster" style={{ objectFit: 'cover', height: 340 }} />
-            {/* Rating Card */}
-            <div style={{ background: 'var(--card-color)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '16px', marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ flexShrink: 0, width: 180 }}>
+            <img
+              src={poster}
+              alt={movie.title}
+              style={{ width: 180, height: 270, objectFit: 'cover', borderRadius: 'var(--radius-lg)', boxShadow: '0 10px 30px rgba(0,0,0,0.25)', border: '3px solid white' }}
+            />
+
+            {/* Stat Card */}
+            <div style={{ marginTop: 16, background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* TMDB Rating */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Rating</span>
-                <StarRating value={movie.vote_average || movie.voteAverage || 0} />
+                <span style={metaStyle}>TMDB Rating</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#FBBF24', fontWeight: 700, fontSize: 15 }}>
+                  ⭐ {Number(tmdbRating).toFixed(1)}
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({voteCount > 1000 ? `${(voteCount/1000).toFixed(0)}k` : voteCount})</span>
+                </span>
               </div>
+
+              {/* Community Rating */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={metaStyle}>Community</span>
+                <span style={{ color: '#6366F1', fontWeight: 700, fontSize: 15 }}>
+                  {communityRating !== null
+                    ? <>⭐ {communityRating} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({communityCount})</span></>
+                    : <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>No ratings yet</span>
+                  }
+                </span>
+              </div>
+
+              {/* AI Match */}
               {(movie.matchScore || movie.confidence) && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>AI Match</span>
-                  <span style={{ color: 'var(--success-accent)', fontWeight: 700, fontSize: 16 }}>🤖 {movie.matchScore || Math.round((movie.confidence || 0) * 100)}%</span>
+                  <span style={metaStyle}>AI Match</span>
+                  <span style={{ color: 'var(--success-accent)', fontWeight: 700, fontSize: 15 }}>
+                    🤖 {movie.matchScore || Math.round((movie.confidence || 0) * 100)}%
+                  </span>
                 </div>
               )}
-              {movie.runtime && (
+
+              {/* Runtime */}
+              {runtime && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Runtime</span>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>{Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m</span>
+                  <span style={metaStyle}>Runtime</span>
+                  <span style={valueStyle}>🕐 {runtime}</span>
                 </div>
               )}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+
+              {/* Release Year */}
+              {releaseYear && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={metaStyle}>Released</span>
+                  <span style={valueStyle}>📅 {releaseYear}</span>
+                </div>
+              )}
+
+              <div style={{ height: 1, background: 'rgba(0,0,0,0.06)' }} />
+
               {/* Action Buttons */}
               <button
-                className={`btn ${isFavorited ? 'btn-danger' : 'btn-secondary'}`}
                 onClick={() => onFavorite?.(movieId)}
-                style={{ width: '100%', justifyContent: 'center', padding: '10px 16px', fontSize: 14, borderRadius: 10, background: isFavorited ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isFavorited ? '#EF4444' : 'var(--card-border)'}`, color: isFavorited ? '#EF4444' : 'white', cursor: 'pointer', fontWeight: 600 }}
+                style={{
+                  width: '100%', padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
+                  fontSize: 14, fontWeight: 600, border: `1px solid ${isFavorited ? '#EF4444' : 'rgba(0,0,0,0.1)'}`,
+                  background: isFavorited ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.03)',
+                  color: isFavorited ? '#EF4444' : 'var(--text-primary)',
+                  transition: 'all 0.2s',
+                }}
               >
                 {isFavorited ? '❤️ Favorited' : '🤍 Add to Favorites'}
               </button>
               <button
-                className="btn btn-secondary"
                 onClick={() => onWatchlist?.(movieId)}
-                style={{ width: '100%', justifyContent: 'center', padding: '10px 16px', fontSize: 14, borderRadius: 10, background: isWatchlisted ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)', border: `1px solid ${isWatchlisted ? 'var(--primary-accent)' : 'var(--card-border)'}`, color: isWatchlisted ? 'var(--primary-accent)' : 'white', cursor: 'pointer', fontWeight: 600 }}
+                style={{
+                  width: '100%', padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
+                  fontSize: 14, fontWeight: 600, border: `1px solid ${isWatchlisted ? '#6366F1' : 'rgba(0,0,0,0.1)'}`,
+                  background: isWatchlisted ? 'rgba(99,102,241,0.08)' : 'rgba(0,0,0,0.03)',
+                  color: isWatchlisted ? '#6366F1' : 'var(--text-primary)',
+                  transition: 'all 0.2s',
+                }}
               >
                 {isWatchlisted ? '📺 In Watchlist' : '➕ Add to Watchlist'}
               </button>
@@ -106,32 +240,33 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
           </div>
 
           {/* Info Column */}
-          <div className="movie-detail-info-column">
-            {/* Genres */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Genres + Year row */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
               {genresList.map(g => (
-                <span key={g} style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', color: '#C7D2FE', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{g}</span>
+                <span key={g} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#6366F1', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{g}</span>
               ))}
               {releaseYear && (
-                <span style={{ background: 'rgba(255,255,255,0.07)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <span style={{ background: 'rgba(0,0,0,0.04)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                   {releaseYear}
                 </span>
               )}
             </div>
 
-            <h1 style={{ fontSize: 36, fontWeight: 900, letterSpacing: '-1px', marginBottom: 8, lineHeight: 1.1 }}>{movie.title}</h1>
-            {movie.tagline && <p className="movie-detail-tagline">"{movie.tagline}"</p>}
+            <h1 style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-1px', marginBottom: 6, lineHeight: 1.1, color: 'var(--text-primary)' }}>{movie.title}</h1>
+            {movie.tagline && <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 15, marginBottom: 18 }}>"{movie.tagline}"</p>}
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--radius-md)', padding: 4 }}>
+            <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'rgba(0,0,0,0.04)', borderRadius: 'var(--radius-md)', padding: 4 }}>
               {tabs.map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
                   flex: 1, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  background: activeTab === tab ? 'rgba(99,102,241,0.2)' : 'transparent',
-                  color: activeTab === tab ? 'white' : 'var(--text-secondary)',
+                  background: activeTab === tab ? 'white' : 'transparent',
+                  color: activeTab === tab ? '#6366F1' : 'var(--text-secondary)',
+                  boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
                   transition: 'all 0.2s ease'
                 }}>
-                  {tab === 'overview' ? 'Overview' : tab === 'cast' ? '🎭 Cast' : '🤖 AI Analysis'}
+                  {tab === 'overview' ? '📄 Overview' : tab === 'cast' ? '🎭 Cast' : '🤖 AI Analysis'}
                 </button>
               ))}
             </div>
@@ -144,12 +279,12 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 </p>
                 {reviews.length > 0 && (
                   <>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Community Reviews</h3>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>Community Reviews</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {reviews.slice(0, 3).map((rev, i) => (
-                        <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
-                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>@{rev.author}</div>
-                          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{rev.content}</p>
+                        <div key={i} style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
+                          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: 'var(--text-primary)' }}>@{rev.author}</div>
+                          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{rev.content?.slice(0, 300)}...</p>
                         </div>
                       ))}
                     </div>
@@ -164,7 +299,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                   {cast.slice(0, 10).map((member, i) => {
                     const profilePath = member.profile_path
                       ? `https://image.tmdb.org/t/p/w185${member.profile_path}`
-                      : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100';
+                      : `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100`;
                     return (
                       <div key={i} className="cast-member-card">
                         <div className="cast-member-avatar" style={{ backgroundImage: `url(${profilePath})` }} />
@@ -181,38 +316,47 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             {activeTab === 'ai-analysis' && (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 {(movie.aiExplanation || movie.reason) && (
-                  <div style={{ background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#C7D2FE', marginBottom: 8 }}>🤖 Why CineAI Recommends This</div>
+                  <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#6366F1', marginBottom: 8 }}>🤖 Why CineAI Recommends This</div>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{movie.aiExplanation || movie.reason}</p>
                   </div>
                 )}
-                <div className="pros-cons-grid">
-                  <div className="pros-card">
-                    <div className="pros-cons-title pro">✅ AI Pros</div>
-                    <div className="pros-cons-list">
-                      {pros.map((p, i) => <div key={i}>• {p}</div>)}
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                  <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
+                    <div style={{ fontWeight: 700, color: '#10B981', marginBottom: 10, fontSize: 14 }}>✅ AI Pros</div>
+                    {pros.map((p, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>• {p}</div>)}
                   </div>
-                  <div className="cons-card">
-                    <div className="pros-cons-title con">⚠️ AI Cons</div>
-                    <div className="pros-cons-list">
-                      {cons.map((c, i) => <div key={i}>• {c}</div>)}
-                    </div>
+                  <div style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
+                    <div style={{ fontWeight: 700, color: '#F59E0B', marginBottom: 10, fontSize: 14 }}>⚠️ AI Cons</div>
+                    {cons.map((c, i) => <div key={i} style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6, lineHeight: 1.5 }}>• {c}</div>)}
                   </div>
                 </div>
-                {/* Your Rating */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>Rate This Movie</div>
-                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button key={star} onClick={() => setRating(star)} style={{
-                        fontSize: 28, background: 'none', border: 'none', cursor: 'pointer',
-                        filter: star <= rating ? 'none' : 'grayscale(1) opacity(0.4)',
-                        transition: 'all 0.15s ease', transform: star <= rating ? 'scale(1.1)' : 'scale(1)'
-                      }}>⭐</button>
-                    ))}
-                    {rating > 0 && <span style={{ color: 'var(--success-accent)', fontWeight: 600, fontSize: 14, marginLeft: 8 }}>You rated {rating}/5</span>}
+
+                {/* Rate This Movie */}
+                <div style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: 20 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: 'var(--text-primary)' }}>
+                    Rate This Movie
                   </div>
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+                    Your rating influences community recommendations
+                  </p>
+                  <StarRatingInput value={userRating} onChange={handleRatingSubmit} disabled={ratingSubmitting} />
+                  {ratingMessage && (
+                    <div style={{
+                      marginTop: 12, fontSize: 13, fontWeight: 600,
+                      color: ratingMessage.includes('Could not') ? '#EF4444' : '#10B981',
+                      background: ratingMessage.includes('Could not') ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+                      border: `1px solid ${ratingMessage.includes('Could not') ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                      borderRadius: 8, padding: '8px 12px',
+                    }}>
+                      {ratingMessage}
+                    </div>
+                  )}
+                  {communityRating !== null && (
+                    <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>
+                      Community avg: <strong style={{ color: '#6366F1' }}>⭐ {communityRating}</strong> from {communityCount} rating{communityCount !== 1 ? 's' : ''}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

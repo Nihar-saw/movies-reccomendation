@@ -44,7 +44,7 @@ export default function Auth({ onLogin }) {
         <div style={{ textAlign: 'center', marginBottom: 4 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <div className="logo-icon">C</div>
-            <span style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(to right, white, #E2E8F0)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CineAI</span>
+            <span style={{ fontSize: 28, fontWeight: 900, background: 'linear-gradient(to right, #0F172A, #334155)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CineAI</span>
           </div>
           <div className="auth-header">
             <h2 className="auth-title">{mode === 'login' ? 'Welcome back 👋' : 'Create an account'}</h2>
@@ -56,7 +56,7 @@ export default function Auth({ onLogin }) {
 
         {/* Error Message */}
         {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', padding: '12px 16px', color: '#FCA5A5', fontSize: 14 }}>
+          <div style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', padding: '12px 16px', color: '#DC2626', fontSize: 14 }}>
             ⚠️ {error}
           </div>
         )}
