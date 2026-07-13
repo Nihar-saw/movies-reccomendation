@@ -115,18 +115,7 @@ export default function Auth({ onLogin }) {
           </span>
         </p>
 
-        {/* Demo Mode */}
-        <div style={{ textAlign: 'center', paddingTop: 8 }}>
-          <button
-            onClick={() => {
-              localStorage.setItem('cineai_mock_mode', 'true');
-              onLogin({ name: 'Demo User', email: 'demo@cineai.com', avatar: 'D' }, 'demo_token');
-            }}
-            style={{ background: 'none', border: '1px dashed rgba(255,255,255,0.2)', borderRadius: 'var(--radius-md)', padding: '10px 20px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, width: '100%', transition: 'all 0.2s ease' }}
-          >
-            🎬 Continue as Guest (Demo Mode)
-          </button>
-        </div>
+
       </div>
     </div>
   );
