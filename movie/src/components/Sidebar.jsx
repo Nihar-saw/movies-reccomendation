@@ -8,7 +8,6 @@ const NAV_ITEMS = [
   { id: 'trending', label: 'Trending', emoji: '🔥' },
   { id: 'watchlist', label: 'Watchlist', emoji: '🔖' },
   { id: 'favorites', label: 'Favorites', emoji: '❤️' },
-  { id: 'watchlist', label: 'Watchlist', emoji: '📺' },
   { id: 'history', label: 'Continue Watching', emoji: '🕒' },
   { id: 'assistant', label: 'AI Assistant', emoji: '💬' },
 ];
