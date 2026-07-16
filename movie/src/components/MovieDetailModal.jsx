@@ -39,6 +39,33 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
   const [communityCount, setCommunityCount] = useState(0);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingMessage, setRatingMessage] = useState('');
+  const [fullMovieData, setFullMovieData] = useState(null);
+
+  // Fetch full movie data (including videos for trailer) when modal opens
+  useEffect(() => {
+    if (!movie) return;
+    const movieId = movie.id || movie.movieId;
+    // Only fetch if we don't already have video data
+    if (!movie?.videos?.results) {
+      api.getMovieDetails(movieId)
+        .then(res => {
+          const data = res.movie || res.data || res;
+          if (data && data.id) setFullMovieData(data);
+        })
+        .catch(() => {});
+    }
+  }, [movie]);
+
+  // Merge fetched full data over the original movie prop
+  const movieData = fullMovieData ? { ...movie, ...fullMovieData } : movie;
+
+  // Find YouTube trailer key from TMDB videos
+  const trailerKey = (() => {
+    const videos = movieData?.videos?.results || [];
+    const trailer = videos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+      || videos.find(v => v.site === 'YouTube');
+    return trailer?.key || null;
+  })();
 
   // Prevent body scroll
   useEffect(() => {
@@ -94,35 +121,35 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
 
   if (!movie) return null;
 
-  const movieId = movie.id || movie.movieId;
+  const movieId = movieData.id || movieData.movieId;
 
-  const backdrop = movie.backdrop_path
-    ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
-    : movie.backdropPath ||
+  const backdrop = movieData.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${movieData.backdrop_path}`
+    : movieData.backdropPath ||
       `https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&auto=format&fit=crop&q=80`;
 
-  const poster = movie.poster_path
-    ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-    : movie.posterPath ||
+  const poster = movieData.poster_path
+    ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}`
+    : movieData.posterPath ||
       `https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=400&h=600&fit=crop&q=70`;
 
-  const cast = movie.credits?.cast || movie.cast || [];
-  const reviews = movie.reviews?.results || movie.reviews || [];
-  const pros = movie.pros || ['Compelling storyline', 'Outstanding performances', 'Stunning cinematography'];
-  const cons = movie.cons || ['Pacing slows in mid-section', 'Some plot points left unresolved'];
+  const cast = movieData.credits?.cast || movieData.cast || [];
+  const reviews = movieData.reviews?.results || movieData.reviews || [];
+  const pros = movieData.pros || ['Compelling storyline', 'Outstanding performances', 'Stunning cinematography'];
+  const cons = movieData.cons || ['Pacing slows in mid-section', 'Some plot points left unresolved'];
 
-  const genresList = (movie.genres || []).map(g => typeof g === 'string' ? g : g.name);
-  const releaseYear = movie.release_date
-    ? new Date(movie.release_date).getFullYear()
-    : movie.releaseDate
-    ? new Date(movie.releaseDate).getFullYear()
+  const genresList = (movieData.genres || []).map(g => typeof g === 'string' ? g : g.name);
+  const releaseYear = movieData.release_date
+    ? new Date(movieData.release_date).getFullYear()
+    : movieData.releaseDate
+    ? new Date(movieData.releaseDate).getFullYear()
     : null;
 
-  const tmdbRating = movie.vote_average || movie.voteAverage || 0;
-  const voteCount = movie.vote_count || movie.voteCount || 0;
+  const tmdbRating = movieData.vote_average || movieData.voteAverage || 0;
+  const voteCount = movieData.vote_count || movieData.voteCount || 0;
 
-  const runtime = movie.runtime
-    ? `${Math.floor(movie.runtime / 60)}h ${movie.runtime % 60}m`
+  const runtime = movieData.runtime
+    ? `${Math.floor(movieData.runtime / 60)}h ${movieData.runtime % 60}m`
     : null;
 
   const tabs = ['overview', 'cast', 'ai-analysis'];
@@ -132,9 +159,9 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.1)' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ background: 'var(--card-color)', border: '1px solid var(--card-border)' }} onClick={e => e.stopPropagation()}>
         {/* Close Button */}
-        <button className="modal-close" style={{ background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none' }} onClick={onClose}>
+        <button className="modal-close" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none' }} onClick={onClose}>
           <CloseIcon />
         </button>
 
@@ -147,7 +174,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
         }}>
           <div style={{
             position: 'absolute', inset: 0,
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(255,255,255,0.98) 100%)'
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, var(--card-color) 100%)'
           }} />
         </div>
 
@@ -158,11 +185,32 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             <img
               src={poster}
               alt={movie.title}
-              style={{ width: 180, height: 270, objectFit: 'cover', borderRadius: 'var(--radius-lg)', boxShadow: '0 10px 30px rgba(0,0,0,0.25)', border: '3px solid white' }}
+              style={{ width: 180, height: 270, objectFit: 'cover', borderRadius: 'var(--radius-lg)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '2px solid rgba(255,255,255,0.1)' }}
             />
 
             {/* Stat Card */}
-            <div style={{ marginTop: 16, background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ marginTop: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {/* Watch Trailer Button */}
+              {trailerKey && (
+                <a
+                  href={`https://www.youtube.com/watch?v=${trailerKey}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    width: '100%', padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
+                    fontSize: 14, fontWeight: 700, textDecoration: 'none',
+                    background: 'linear-gradient(135deg, #FF0000, #CC0000)',
+                    color: 'white', border: 'none',
+                    transition: 'all 0.2s', boxShadow: '0 4px 14px rgba(255,0,0,0.3)',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Watch Trailer
+                </a>
+              )}
               {/* TMDB Rating */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={metaStyle}>TMDB Rating</span>
@@ -216,9 +264,9 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 onClick={() => onFavorite?.(movieId)}
                 style={{
                   width: '100%', padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
-                  fontSize: 14, fontWeight: 600, border: `1px solid ${isFavorited ? '#EF4444' : 'rgba(0,0,0,0.1)'}`,
-                  background: isFavorited ? 'rgba(239,68,68,0.08)' : 'rgba(0,0,0,0.03)',
-                  color: isFavorited ? '#EF4444' : 'var(--text-primary)',
+                  fontSize: 14, fontWeight: 600, border: `1px solid ${isFavorited ? 'rgba(248,113,113,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                  background: isFavorited ? 'rgba(248,113,113,0.15)' : 'rgba(255,255,255,0.05)',
+                  color: isFavorited ? '#F87171' : 'var(--text-primary)',
                   transition: 'all 0.2s',
                 }}
               >
@@ -228,9 +276,9 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 onClick={() => onWatchlist?.(movieId)}
                 style={{
                   width: '100%', padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
-                  fontSize: 14, fontWeight: 600, border: `1px solid ${isWatchlisted ? '#6366F1' : 'rgba(0,0,0,0.1)'}`,
-                  background: isWatchlisted ? 'rgba(99,102,241,0.08)' : 'rgba(0,0,0,0.03)',
-                  color: isWatchlisted ? '#6366F1' : 'var(--text-primary)',
+                  fontSize: 14, fontWeight: 600, border: `1px solid ${isWatchlisted ? 'rgba(129,140,248,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  background: isWatchlisted ? 'rgba(129,140,248,0.12)' : 'rgba(255,255,255,0.05)',
+                  color: isWatchlisted ? 'var(--primary-accent)' : 'var(--text-primary)',
                   transition: 'all 0.2s',
                 }}
               >
@@ -244,26 +292,27 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             {/* Genres + Year row */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
               {genresList.map(g => (
-                <span key={g} style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', color: '#6366F1', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{g}</span>
+                <span key={g} style={{ background: 'rgba(129,140,248,0.15)', border: '1px solid rgba(129,140,248,0.25)', color: 'var(--primary-accent)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600 }}>{g}</span>
               ))}
               {releaseYear && (
-                <span style={{ background: 'rgba(0,0,0,0.04)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <span style={{ background: 'rgba(255,255,255,0.08)', padding: '4px 12px', borderRadius: 50, fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
                   {releaseYear}
                 </span>
               )}
             </div>
 
-            <h1 style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-1px', marginBottom: 6, lineHeight: 1.1, color: 'var(--text-primary)' }}>{movie.title}</h1>
-            {movie.tagline && <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 15, marginBottom: 18 }}>"{movie.tagline}"</p>}
+
+            <h1 style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-1px', marginBottom: 6, lineHeight: 1.1, color: 'var(--text-primary)' }}>{movieData.title}</h1>
+            {movieData.tagline && <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 15, marginBottom: 18 }}>"{movieData.tagline}"</p>}
 
             {/* Tab Navigation */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'rgba(0,0,0,0.04)', borderRadius: 'var(--radius-md)', padding: 4 }}>
+            <div style={{ display: 'flex', gap: 0, marginBottom: 24, background: 'var(--card-border)', borderRadius: 'var(--radius-md)', padding: 4 }}>
               {tabs.map(tab => (
                 <button key={tab} onClick={() => setActiveTab(tab)} style={{
                   flex: 1, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  background: activeTab === tab ? 'white' : 'transparent',
-                  color: activeTab === tab ? '#6366F1' : 'var(--text-secondary)',
-                  boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                  background: activeTab === tab ? 'rgba(129,140,248,0.15)' : 'transparent',
+                  color: activeTab === tab ? 'var(--primary-accent)' : 'var(--text-secondary)',
+                  boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
                   transition: 'all 0.2s ease'
                 }}>
                   {tab === 'overview' ? '📄 Overview' : tab === 'cast' ? '🎭 Cast' : '🤖 AI Analysis'}
@@ -275,14 +324,14 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
             {activeTab === 'overview' && (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
                 <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, fontSize: 15, marginBottom: 24 }}>
-                  {movie.overview}
+                  {movieData.overview}
                 </p>
                 {reviews.length > 0 && (
                   <>
                     <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>Community Reviews</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {reviews.slice(0, 3).map((rev, i) => (
-                        <div key={i} style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
+                        <div key={i} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
                           <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 6, color: 'var(--text-primary)' }}>@{rev.author}</div>
                           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{rev.content?.slice(0, 300)}...</p>
                         </div>
@@ -315,10 +364,10 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
 
             {activeTab === 'ai-analysis' && (
               <div style={{ animation: 'fadeIn 0.3s ease' }}>
-                {(movie.aiExplanation || movie.reason) && (
-                  <div style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: '#6366F1', marginBottom: 8 }}>🤖 Why CineAI Recommends This</div>
-                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{movie.aiExplanation || movie.reason}</p>
+                {(movieData.aiExplanation || movieData.reason) && (
+                  <div style={{ background: 'rgba(129,140,248,0.08)', border: '1px solid rgba(129,140,248,0.2)', borderRadius: 'var(--radius-md)', padding: '16px 20px', marginBottom: 24 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--primary-accent)', marginBottom: 8 }}>🤖 Why CineAI Recommends This</div>
+                    <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{movieData.aiExplanation || movieData.reason}</p>
                   </div>
                 )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
@@ -333,7 +382,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 </div>
 
                 {/* Rate This Movie */}
-                <div style={{ background: '#F8FAFC', border: '1px solid rgba(0,0,0,0.06)', borderRadius: 'var(--radius-md)', padding: 20 }}>
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)', padding: 20 }}>
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, color: 'var(--text-primary)' }}>
                     Rate This Movie
                   </div>
