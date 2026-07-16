@@ -55,9 +55,10 @@ export default function Assistant({ user, onSelectMovie }) {
       const aiMsg = { id: Date.now() + 1, role: 'ai', text: responseText, movies: fetchedMovies };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err) {
+      const errMsg = err?.response?.data?.message || err?.message || 'Unknown error';
       setMessages(prev => [...prev, {
         id: Date.now() + 1, role: 'ai',
-        text: 'I had trouble connecting right now. Please try again shortly!',
+        text: `I had trouble connecting right now. (${errMsg}) Please try again shortly!`,
         movies: []
       }]);
     } finally {
@@ -139,7 +140,7 @@ export default function Assistant({ user, onSelectMovie }) {
         {/* Quick suggestions */}
         <div className="chat-suggestions">
           {QUICK_PROMPTS.map(q => (
-            <button key={q} className="chat-suggestion-tag" onClick={() => sendMessage(q.replace(/^[^ ]+ /, ''))}>{q}</button>
+            <button key={q} className="chat-suggestion-tag" onClick={() => sendMessage(q)}>{q}</button>
           ))}
         </div>
 
