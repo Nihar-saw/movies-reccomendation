@@ -145,6 +145,22 @@ export default function MovieCard({ movie, onSelect, onFavorite, onWatchlist, is
             >
               {isWatchlisted ? '✓ In Watchlist' : <><PlusIcon /> Add to Watchlist</>}
             </button>
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent((movie.title || '') + ' official trailer')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                width: '100%', padding: '7px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(255, 0, 0, 0.7)',
+                color: 'white', fontSize: 11, fontWeight: 600, textDecoration: 'none',
+                backdropFilter: 'blur(4px)', marginTop: 4,
+              }}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Watch Trailer
+            </a>
           </div>
         )}
 
