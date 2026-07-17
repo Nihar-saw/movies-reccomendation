@@ -16,6 +16,7 @@ import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Admin from './pages/Admin.jsx';
 import Auth from './pages/Auth.jsx';
+import Landing from './pages/Landing.jsx';
 
 import { api } from './api/api.js';
 
@@ -85,6 +86,9 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [allMovies, setAllMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Auth view state (landing, login, register)
+  const [authView, setAuthView] = useState('landing');
 
   // Restore session & load profile data
   useEffect(() => {
@@ -141,6 +145,7 @@ export default function App() {
     setWatchlist([]);
     setActiveView('home');
     setSelectedMovie(null);
+    setAuthView('landing');
   };
 
   const handleFavorite = useCallback(async (movieId) => {
@@ -187,15 +192,29 @@ export default function App() {
   }, []);
 
   if (!user) {
-    return <Auth onLogin={handleLogin} />;
+    if (authView === 'landing') {
+      return <Landing onAuthClick={(mode) => setAuthView(mode)} />;
+    }
+    return <Auth initialMode={authView} onLogin={handleLogin} onBack={() => setAuthView('landing')} />;
   }
+
+  const handleRemoveHistory = async (movieId) => {
+    try {
+      await api.removeHistory(movieId);
+      setHistory(prev => prev.filter(m => m.movieId !== movieId && m.id !== movieId));
+    } catch (error) {
+      console.error("Failed to remove history:", error);
+    }
+  };
 
   const mp = {
     onSelectMovie: handleSelectMovie,
-    favorites, watchlist,
+    favorites, watchlist, history, user,
     onFavorite: handleFavorite,
     onWatchlist: handleWatchlist,
+    onRemoveHistory: handleRemoveHistory,
     movies: allMovies,
+    setActiveView,
   };
 
   const renderPage = () => {

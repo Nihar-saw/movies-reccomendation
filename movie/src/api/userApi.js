@@ -44,6 +44,11 @@ export const userApi = {
     return response.data;
   },
 
+  removeHistory: async (movieId) => {
+    const response = await axiosInstance.delete(`/history/${movieId}`);
+    return response.data;
+  },
+
   // Ratings
   rateMovie: async (movieId, rating) => {
     const response = await axiosInstance.post('/ratings', { movieId, rating });

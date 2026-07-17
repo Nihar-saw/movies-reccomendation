@@ -45,10 +45,10 @@ export default function Profile({ user, favorites, watchlist, history, onSelectM
           <p style={{ color: 'var(--text-secondary)', marginBottom: 16 }}>{user?.email}</p>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[
-              { label: 'Films Watched', value: history.length || 124 },
-              { label: 'Favorites', value: favorites.length || 36 },
-              { label: 'Watchlist', value: watchlist.length || 18 },
-              { label: 'Watch Streak', value: '7 days 🔥' },
+              { label: 'Films Watched', value: history.length },
+              { label: 'Favorites', value: favorites.length },
+              { label: 'Watchlist', value: watchlist.length },
+              { label: 'Watch Streak', value: `${history.length > 0 ? 1 : 0} days 🔥` },
             ].map(stat => (
               <div key={stat.label}>
                 <div style={{ fontSize: 22, fontWeight: 800 }}>{stat.value}</div>
@@ -66,7 +66,7 @@ export default function Profile({ user, favorites, watchlist, history, onSelectM
           <div className="streak-card">
             <div className="streak-icon">🔥</div>
             <div>
-              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>7 Day Watch Streak!</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>{history.length > 0 ? 1 : 0} Day Watch Streak!</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Keep watching to maintain your streak and unlock achievements</div>
             </div>
           </div>

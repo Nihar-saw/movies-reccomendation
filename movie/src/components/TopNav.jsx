@@ -40,10 +40,10 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
       </form>
 
       {/* Action Buttons */}
-      <div className="top-nav-actions">
+      <div className="top-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
         {/* Voice Search */}
         <button className="icon-btn" title="Voice Search" onClick={() => { inputRef.current?.focus(); }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2">
             <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
           </svg>
@@ -56,9 +56,10 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
             </svg>
             <span style={{
-              position: 'absolute', top: 6, right: 6, width: 8, height: 8,
-              background: 'var(--primary-accent)', borderRadius: '50%', border: '2px solid var(--bg-color)'
-            }} />
+              position: 'absolute', top: -4, right: -4, width: 16, height: 16,
+              background: '#D946EF', borderRadius: '50%', border: '2px solid var(--bg-color)',
+              color: 'white', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}>3</span>
           </button>
           {showNotifs && (
             <div className="glass" style={{
@@ -73,7 +74,7 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
               {NOTIFS.map(n => (
                 <div key={n.id} style={{
                   padding: '16px 20px', borderBottom: '1px solid rgba(0,0,0,0.05)',
-                  background: n.unread ? 'rgba(99,102,241,0.04)' : 'transparent', cursor: 'pointer'
+                  background: n.unread ? 'rgba(139,92,246,0.04)' : 'transparent', cursor: 'pointer'
                 }}>
                   <div style={{ fontSize: 13, lineHeight: 1.5, marginBottom: 4 }}>{n.text}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{n.time}</div>
@@ -83,11 +84,30 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
           )}
         </div>
 
+        {/* Dark Mode Toggle */}
+        <button className="icon-btn" title="Toggle Theme">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
         {/* Profile Avatar / User Menu */}
         {user ? (
           <div style={{ position: 'relative' }}>
-            <div className="profile-avatar" onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifs(false); }}>
-              {user.avatar || user.name?.[0]?.toUpperCase() || 'U'}
+            <div 
+              onClick={() => { setShowUserMenu(!showUserMenu); setShowNotifs(false); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', padding: '6px 12px 6px 6px', borderRadius: 30, transition: 'var(--transition-fast)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Nihar Sawant" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>Nihar Sawant</span>
+                <span style={{ fontSize: 11, color: '#D946EF', fontWeight: 600 }}>Premium</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
             </div>
             {showUserMenu && (
               <div className="glass" style={{

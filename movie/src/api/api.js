@@ -18,6 +18,7 @@ export const api = {
   // Watch History
   addHistory: userApi.addHistory,
   getHistory: userApi.getHistory,
+  removeHistory: userApi.removeHistory,
 
   // Ratings
   rateMovie: userApi.rateMovie,

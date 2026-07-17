@@ -300,8 +300,6 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 </span>
               )}
             </div>
-
-
             <h1 style={{ fontSize: 34, fontWeight: 900, letterSpacing: '-1px', marginBottom: 6, lineHeight: 1.1, color: 'var(--text-primary)' }}>{movieData.title}</h1>
             {movieData.tagline && <p style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: 15, marginBottom: 18 }}>"{movieData.tagline}"</p>}
 
