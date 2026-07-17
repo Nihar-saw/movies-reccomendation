@@ -257,6 +257,60 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 </div>
               )}
 
+              {/* Streaming Platforms */}
+              {(() => {
+                const streamingData = movieData["watch/providers"] || movieData.watchProviders;
+                const countryData = streamingData?.results?.US || streamingData?.results?.IN || Object.values(streamingData?.results || {})[0];
+                const streamingProviders = countryData?.flatrate || countryData?.rent || countryData?.buy || [];
+                const providerLink = countryData?.link || `https://www.google.com/search?q=where+to+watch+${encodeURIComponent(movieData.title)}`;
+                
+                if (streamingProviders.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={metaStyle}>Streaming</span>
+                      <a href={providerLink} target="_blank" rel="noopener noreferrer" style={{ ...valueStyle, color: 'var(--primary-accent)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        🔍 Find Stream
+                      </a>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                    <span style={metaStyle}>Available On</span>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {streamingProviders.slice(0, 3).map(p => (
+                        <a
+                          href={providerLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          key={p.provider_id}
+                          title={p.provider_name}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6, textDecoration: 'none',
+                            background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 8,
+                            border: '1px solid var(--card-border)', transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {p.logo_path ? (
+                            <img
+                              src={`https://image.tmdb.org/t/p/original${p.logo_path}`}
+                              alt={p.provider_name}
+                              style={{ width: 16, height: 16, borderRadius: 4 }}
+                            />
+                          ) : (
+                            <span>📺</span>
+                          )}
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {p.provider_name.split(' ')[0]}
+                          </span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div style={{ height: 1, background: 'rgba(0,0,0,0.06)' }} />
 
               {/* Action Buttons */}

@@ -11,15 +11,18 @@ export const movieApi = {
     return response.data;
   },
 
-  // Fallback to popular since backend doesn't have dedicated /movies/top-rated endpoint
   getTopRatedMovies: async (page = 1) => {
-    const response = await axiosInstance.get(`/movies/popular?page=${page}`);
+    const response = await axiosInstance.get(`/movies/top-rated?page=${page}`);
     return response.data;
   },
 
-  // Fallback to trending since backend doesn't have dedicated /movies/upcoming endpoint
   getUpcomingMovies: async (page = 1) => {
-    const response = await axiosInstance.get(`/movies/trending?page=${page}`);
+    const response = await axiosInstance.get(`/movies/upcoming?page=${page}`);
+    return response.data;
+  },
+
+  getDiscoverMovies: async (genreId, page = 1) => {
+    const response = await axiosInstance.get(`/movies/discover?genre=${genreId}&page=${page}`);
     return response.data;
   },
 

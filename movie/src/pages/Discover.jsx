@@ -13,113 +13,168 @@ const GENRES = [
   { id: 27, name: 'Horror', emoji: '👻', color: '#7C3AED' },
 ];
 
+const TABS = [
+  { id: 'popular', label: 'Popular', emoji: '🔥' },
+  { id: 'now_playing', label: 'Now Playing', emoji: '🎭' },
+  { id: 'upcoming', label: 'Upcoming', emoji: '📅' },
+  { id: 'top_rated', label: 'Top Rated', emoji: '⭐' },
+];
+
 export default function Discover({ onSelectMovie, favorites, watchlist, onFavorite, onWatchlist }) {
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState({ popular: [], nowPlaying: [], upcoming: [], topRated: [] });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('popular');
   const [selectedGenreId, setSelectedGenreId] = useState(null);
 
   useEffect(() => {
-    const loadMovies = async () => {
+    const loadAll = async () => {
       setLoading(true);
       try {
-        const result = await api.getTrendingMovies();
-        const all = result.results || result || [];
-        const filtered = selectedGenreId
-          ? all.filter(m => (m.genre_ids || []).includes(selectedGenreId))
-          : all;
-        setMovies(filtered);
+        const [pop, np, up, tr] = await Promise.all([
+          api.getPopularMovies(),
+          api.getTrendingMovies(), // Use trending as now playing fallback
+          api.getUpcomingMovies(),
+          api.getTopRatedMovies(),
+        ]);
+        setMovies({
+          popular: pop.results || pop || [],
+          nowPlaying: np.results || np || [],
+          upcoming: up.results || up || [],
+          topRated: tr.results || tr || [],
+        });
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-    loadMovies();
-  }, [selectedGenreId]);
+    loadAll();
+  }, []);
+
+  const getFilteredMovies = (list) => {
+    if (!selectedGenreId) return list;
+    return list.filter(m => (m.genre_ids || []).includes(selectedGenreId));
+  };
+
+  const currentList = 
+    activeTab === 'popular' ? movies.popular :
+    activeTab === 'now_playing' ? movies.nowPlaying :
+    activeTab === 'upcoming' ? movies.upcoming : movies.topRated;
+
+  const filteredCurrentList = getFilteredMovies(currentList);
+  const newReleases = getFilteredMovies(movies.upcoming);
+
+  const cardStyle = { background: 'var(--card-color)', border: '1px solid var(--card-border)', borderRadius: 16, padding: 24 };
 
   return (
-    <div className="page-container">
-      {/* Page Header */}
-      <div style={{ marginBottom: 36 }}>
-        <h1 style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-1px', marginBottom: 8 }}>
-          🎬 Discover Movies
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 16 }}>
-          Explore our curated collection across all genres, powered by AI curation.
-        </p>
-      </div>
-
-      {/* Genre Pills */}
-      <div style={{ marginBottom: 36 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 18 }}>🎭 Browse by Genre</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 14 }}>
+    <div className="page-container" style={{ paddingTop: 24 }}>
+      {/* Category Tabs */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid var(--card-border)', paddingBottom: 12 }}>
+        {TABS.map(t => (
           <button
-            onClick={() => setSelectedGenreId(null)}
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
             style={{
-              padding: '18px 12px', borderRadius: 'var(--radius-lg)', border: '1px solid',
-              borderColor: !selectedGenreId ? 'var(--primary-accent)' : 'var(--card-border)',
-              background: !selectedGenreId ? 'rgba(99,102,241,0.15)' : 'var(--card-color)',
-              color: !selectedGenreId ? 'white' : 'var(--text-secondary)',
-              cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 14,
-              transition: 'all 0.2s ease'
+              background: activeTab === t.id ? '#6366F1' : 'transparent',
+              color: activeTab === t.id ? 'white' : 'var(--text-secondary)',
+              border: 'none', borderRadius: 20, padding: '8px 18px', fontSize: 13, fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
             }}
           >
-            <div style={{ fontSize: 28, marginBottom: 6 }}>🎞️</div>
-            All
+            <span>{t.emoji}</span>
+            {t.label}
           </button>
-          {GENRES.map(genre => (
-            <button
-              key={genre.id}
-              onClick={() => setSelectedGenreId(genre.id)}
-              style={{
-                padding: '18px 12px', borderRadius: 'var(--radius-lg)', border: '1px solid',
-                borderColor: selectedGenreId === genre.id ? genre.color : 'var(--card-border)',
-                background: selectedGenreId === genre.id ? `${genre.color}20` : 'var(--card-color)',
-                color: selectedGenreId === genre.id ? 'white' : 'var(--text-secondary)',
-                cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 14,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <div style={{ fontSize: 28, marginBottom: 6 }}>{genre.emoji}</div>
-              {genre.name}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
-      {/* Movies Grid */}
-      <h2 style={{ fontSize: 22, fontWeight: 700, marginBottom: 22 }}>
-        {selectedGenreId ? `${GENRES.find(g => g.id === selectedGenreId)?.name} Movies` : 'All Movies'}
-        <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 12 }}>{movies.length} titles</span>
-      </h2>
-
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, animation: 'pulse 2s infinite' }}>🎬</div>
-            <div>Loading amazing movies...</div>
-          </div>
+        <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 48, marginBottom: 16, animation: 'pulse 2s infinite' }}>🎬</div>
+          <div>Loading amazing collections...</div>
         </div>
       ) : (
-        <div className="movie-grid">
-          {movies.map(movie => (
-            <MovieCard
-              key={movie.id || movie.movieId}
-              movie={movie}
-              onSelect={onSelectMovie}
-              onFavorite={onFavorite}
-              onWatchlist={onWatchlist}
-              isFavorited={favorites.includes(movie.id || movie.movieId)}
-              isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
-            />
-          ))}
-          {movies.length === 0 && (
-            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🔍</div>
-              <p>No movies found for this genre. Try another one!</p>
+        <>
+          {/* Main Popular Section */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800 }}>Popular Movies</h2>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{filteredCurrentList.length} matches</span>
             </div>
-          )}
-        </div>
+            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+              {filteredCurrentList.map(movie => (
+                <MovieCard
+                  key={movie.id || movie.movieId}
+                  movie={movie}
+                  onSelect={onSelectMovie}
+                  onFavorite={onFavorite}
+                  onWatchlist={onWatchlist}
+                  isFavorited={favorites.includes(movie.id || movie.movieId)}
+                  isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                />
+              ))}
+              {filteredCurrentList.length === 0 && (
+                <div style={{ color: 'var(--text-muted)', padding: '20px 0', fontSize: 13 }}>No matches in this genre.</div>
+              )}
+            </div>
+          </div>
+
+          {/* New Releases Section */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h2 style={{ fontSize: 20, fontWeight: 800 }}>New Releases</h2>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{newReleases.length} matches</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+              {newReleases.map(movie => (
+                <MovieCard
+                  key={movie.id || movie.movieId}
+                  movie={movie}
+                  onSelect={onSelectMovie}
+                  onFavorite={onFavorite}
+                  onWatchlist={onWatchlist}
+                  isFavorited={favorites.includes(movie.id || movie.movieId)}
+                  isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Genres Grid (Bottom) */}
+          <div style={cardStyle}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>🎭 Browse by Genre</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12 }}>
+              <button
+                onClick={() => setSelectedGenreId(null)}
+                style={{
+                  padding: '14px 10px', borderRadius: 12, border: '1px solid',
+                  borderColor: !selectedGenreId ? '#6366F1' : 'var(--card-border)',
+                  background: !selectedGenreId ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.02)',
+                  color: !selectedGenreId ? 'white' : 'var(--text-secondary)',
+                  cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 13, transition: 'all 0.2s'
+                }}
+              >
+                <div style={{ fontSize: 22, marginBottom: 4 }}>🎞️</div>
+                All Genres
+              </button>
+              {GENRES.map(genre => (
+                <button
+                  key={genre.id}
+                  onClick={() => setSelectedGenreId(genre.id)}
+                  style={{
+                    padding: '14px 10px', borderRadius: 12, border: '1px solid',
+                    borderColor: selectedGenreId === genre.id ? genre.color : 'var(--card-border)',
+                    background: selectedGenreId === genre.id ? `${genre.color}20` : 'rgba(255,255,255,0.02)',
+                    color: selectedGenreId === genre.id ? 'white' : 'var(--text-secondary)',
+                    cursor: 'pointer', textAlign: 'center', fontWeight: 700, fontSize: 13, transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{ fontSize: 22, marginBottom: 4 }}>{genre.emoji}</div>
+                  {genre.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
