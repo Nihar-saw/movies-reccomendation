@@ -236,7 +236,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={metaStyle}>AI Match</span>
                   <span style={{ color: 'var(--success-accent)', fontWeight: 700, fontSize: 15 }}>
-                    🤖 {movie.matchScore || Math.round((movie.confidence || 0) * 100)}%
+                  {movie.matchScore || Math.round((movie.confidence || 0) * 100)}%
                   </span>
                 </div>
               )}
@@ -270,7 +270,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                   transition: 'all 0.2s',
                 }}
               >
-                {isFavorited ? '❤️ Favorited' : '🤍 Add to Favorites'}
+                {isFavorited ? 'Favorited' : 'Add to Favorites'}
               </button>
               <button
                 onClick={() => onWatchlist?.(movieId)}
@@ -282,7 +282,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                   transition: 'all 0.2s',
                 }}
               >
-                {isWatchlisted ? '📺 In Watchlist' : '➕ Add to Watchlist'}
+                {isWatchlisted ? 'In Watchlist' : 'Add to Watchlist'}
               </button>
             </div>
           </div>

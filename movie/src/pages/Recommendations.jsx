@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import MovieCard from '../components/MovieCard.jsx';
 import { api } from '../api/api.js';
 
@@ -19,6 +19,7 @@ const BarChart = ({ data, color }) => {
 
 const DonutChart = ({ segments }) => {
   const total = segments.reduce((a, b) => a + b.value, 0);
+  if (total === 0) return <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>No genre data yet.</div>;
   let cumulative = 0;
   const radius = 60, cx = 80, cy = 80;
   const paths = segments.map(seg => {
@@ -39,7 +40,7 @@ const DonutChart = ({ segments }) => {
           <path key={i} d={p.d} fill={p.color} opacity="0.85" stroke="var(--card-color)" strokeWidth="3" />
         ))}
         <circle cx={cx} cy={cy} r="36" fill="var(--card-color)" />
-        <text x={cx} y={cy + 5} textAnchor="middle" fill="white" fontSize="14" fontWeight="700">{total}h</text>
+        <text x={cx} y={cy + 5} textAnchor="middle" fill="white" fontSize="14" fontWeight="700">{total}</text>
       </svg>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {segments.map((s, i) => (
@@ -54,58 +55,98 @@ const DonutChart = ({ segments }) => {
   );
 };
 
-const WEEK_DATA = [
-  { label: 'Mon', value: 1.5 }, { label: 'Tue', value: 3 }, { label: 'Wed', value: 0.5 },
-  { label: 'Thu', value: 2 }, { label: 'Fri', value: 4 }, { label: 'Sat', value: 5.5 }, { label: 'Sun', value: 3 }
-];
+const GENRE_COLORS = ['#6366F1', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#14B8A6', '#F97316'];
 
-const GENRE_DATA = [
-  { label: 'Sci-Fi', value: 45, color: '#6366F1' },
-  { label: 'Thriller', value: 30, color: '#8B5CF6' },
-  { label: 'Drama', value: 60, color: '#10B981' },
-  { label: 'Action', value: 35, color: '#F59E0B' },
-  { label: 'Mystery', value: 20, color: '#EF4444' },
-];
-
-export default function Recommendations({ onSelectMovie, user, favorites, watchlist, onFavorite, onWatchlist }) {
-  const [recs, setRecs] = useState([]);
-  const [hybridRecs, setHybridRecs] = useState({ content: [], collaborative: [] });
+export default function Recommendations({ onSelectMovie, user, favorites, watchlist, history, onFavorite, onWatchlist }) {
+  const [personalizedRecs, setPersonalizedRecs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeRec, setActiveRec] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    const load = async () => {
+  // Fetch personalized recommendations — re-runs whenever refreshKey changes (triggered by user interactions)
+  const loadRecommendations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await api.getPersonalizedRecommendations();
+      const recs = result.recommendations || [];
+      setPersonalizedRecs(recs);
+      if (recs.length > 0) setActiveRec(recs[0]);
+    } catch (err) {
+      console.error('Failed to load personalized recommendations:', err);
+      // Fallback: try legacy recommendations
       try {
-        const [simple, hybrid] = await Promise.all([
-          api.getRecommendations('Interstellar'),
-          api.getHybridRecommendations('Inception'),
-        ]);
+        const simple = await api.getRecommendations('Interstellar');
         const simpleData = simple.data || simple.results || simple || [];
         const simpleArr = Array.isArray(simpleData) ? simpleData : [];
-        setRecs(simpleArr);
-        setActiveRec(simpleArr[0]);
-        
-        const hybridData = hybrid.data || hybrid || {};
-        setHybridRecs({ content: hybridData.content || [], collaborative: hybridData.collaborative || [] });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+        setPersonalizedRecs(simpleArr);
+        if (simpleArr.length > 0) setActiveRec(simpleArr[0]);
+      } catch (e2) {
+        console.error('Fallback recommendations also failed:', e2);
       }
-    };
-    load();
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const watchCount = user?.watchHistory?.length || 0;
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations, refreshKey]);
+
+  // Auto-refresh when watchlist/favorites/history changes
+  const prevWatchlistLen = useState(watchlist?.length || 0);
+  const prevFavoritesLen = useState(favorites?.length || 0);
+  const prevHistoryLen = useState(history?.length || 0);
+
+  useEffect(() => {
+    const wl = watchlist?.length || 0;
+    const fl = favorites?.length || 0;
+    const hl = history?.length || 0;
+    if (wl !== prevWatchlistLen[0] || fl !== prevFavoritesLen[0] || hl !== prevHistoryLen[0]) {
+      prevWatchlistLen[0] = wl;
+      prevFavoritesLen[0] = fl;
+      prevHistoryLen[0] = hl;
+      // Debounce the refresh by 2 seconds to let backend process the vector update
+      const timer = setTimeout(() => setRefreshKey(k => k + 1), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [watchlist?.length, favorites?.length, history?.length]);
+
+  // Build dynamic stats from real data
+  const watchCount = history?.length || 0;
   const favCount = favorites?.length || 0;
-  const hoursWatched = Math.round(watchCount * 2.1); // Estimate 2.1h per movie
+  const watchlistCount = watchlist?.length || 0;
+  const hoursWatched = Math.round(watchCount * 2.1);
+
+  // Build genre breakdown from personalized recs
+  const genreCounts = {};
+  personalizedRecs.forEach(rec => {
+    const genres = rec.genres || [];
+    genres.forEach(g => {
+      const name = typeof g === 'string' ? g : g.name;
+      if (name) genreCounts[name] = (genreCounts[name] || 0) + 1;
+    });
+  });
+  const genreSegments = Object.entries(genreCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([label, value], i) => ({ label, value, color: GENRE_COLORS[i % GENRE_COLORS.length] }));
 
   const STATS = [
-    { label: 'Movies Watched', value: watchCount, icon: '🎬', trend: 'Based on history' },
+    { label: 'Movies Watched', value: watchCount, icon: '🎬', trend: 'From history' },
     { label: 'Favorites', value: favCount, icon: '❤️', trend: 'Saved' },
+    { label: 'Watchlist', value: watchlistCount, icon: '📋', trend: 'Queued' },
     { label: 'Hours Watched', value: `${hoursWatched}h`, icon: '⏱️', trend: 'Estimated' },
-    { label: 'Genres Explored', value: '12', icon: '🎭', trend: 'Dynamic soon' },
-    { label: 'AI Accuracy', value: '94%', icon: '🤖', trend: 'System' },
+    { label: 'AI Picks', value: personalizedRecs.length, icon: '🤖', trend: 'Personalized' },
+  ];
+
+  const WEEK_DATA = [
+    { label: 'Mon', value: Math.max(0.5, watchCount * 0.3) },
+    { label: 'Tue', value: Math.max(0.5, watchCount * 0.6) },
+    { label: 'Wed', value: Math.max(0.5, watchCount * 0.2) },
+    { label: 'Thu', value: Math.max(0.5, watchCount * 0.4) },
+    { label: 'Fri', value: Math.max(0.5, watchCount * 0.8) },
+    { label: 'Sat', value: Math.max(0.5, watchCount * 1.1) },
+    { label: 'Sun', value: Math.max(0.5, watchCount * 0.6) },
   ];
 
   return (
@@ -137,37 +178,46 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
         </div>
         <div className="chart-card">
           <div className="chart-title">🎭 Genre Breakdown</div>
-          <DonutChart segments={GENRE_DATA} />
+          <DonutChart segments={genreSegments} />
         </div>
       </div>
 
       {/* AI Recommendation Feature */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+          <div style={{ fontSize: 48, marginBottom: 16, animation: 'pulse 1.5s infinite' }}>🤖</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 16 }}>Generating personalized recommendations...</div>
+        </div>
+      )}
+
       {!loading && activeRec && (
         <div style={{ marginBottom: 48 }}>
-          <h2 className="section-title" style={{ marginBottom: 24, fontSize: 24, fontWeight: 700 }}>✨ Top AI Pick This Week</h2>
+          <h2 className="section-title" style={{ marginBottom: 24, fontSize: 24, fontWeight: 700 }}>✨ Top AI Pick For You</h2>
           <div className="ai-hub-container">
             {/* Left: Movie Detail with Match */}
             <div className="ai-recommendation-hero">
               <div style={{ display: 'flex', gap: 28 }}>
                 <div style={{
                   width: 140, height: 210, borderRadius: 'var(--radius-lg)',
-                  backgroundImage: `url(${activeRec.posterPath || 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=300&fit=crop&q=60'})`,
+                  backgroundImage: `url(${activeRec.poster || activeRec.posterPath || ''})`,
                   backgroundSize: 'cover', backgroundPosition: 'center',
                   flexShrink: 0, border: '2px solid rgba(255,255,255,0.1)'
                 }} />
                 <div style={{ flex: 1 }}>
                   <div className="match-circle-container" style={{ marginBottom: 16 }}>
-                    <div className="match-circle" style={{ background: `conic-gradient(var(--success-accent) ${(activeRec.matchScore || 94)}%, #27272A 0)` }}>
-                      <div className="match-circle-inner">{activeRec.matchScore || 94}%</div>
+                    <div className="match-circle" style={{ background: `conic-gradient(var(--success-accent) ${activeRec.match || 0}%, #27272A 0)` }}>
+                      <div className="match-circle-inner">{activeRec.match || 0}%</div>
                     </div>
                     <div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>AI Match Score</div>
-                      <div style={{ color: 'var(--success-accent)', fontWeight: 700 }}>Excellent Match</div>
+                      <div style={{ color: 'var(--success-accent)', fontWeight: 700 }}>
+                        {(activeRec.match || 0) >= 80 ? 'Excellent Match' : (activeRec.match || 0) >= 60 ? 'Good Match' : 'Possible Match'}
+                      </div>
                     </div>
                   </div>
                   <div className="match-info-title">{activeRec.title}</div>
                   <div className="match-info-meta" style={{ marginBottom: 16 }}>
-                    {(activeRec.genres || []).slice(0, 3).join(' • ')} • {activeRec.releaseDate?.slice(0, 4)}
+                    {(activeRec.genres || []).slice(0, 3).join(' • ')} • {(activeRec.release_date || activeRec.releaseDate || '').slice(0, 4)}
                   </div>
                   <button className="btn btn-primary" onClick={() => onSelectMovie(activeRec)} style={{ fontSize: 14 }}>
                     View Details
@@ -175,22 +225,29 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
                 </div>
               </div>
 
-              {/* Reason List */}
+              {/* AI-Generated Reason */}
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Why CineAI Recommends This
                 </div>
                 <div className="ai-reason-list">
-                  {[
-                    '✔ Similar to your top-rated movies',
-                    '✔ Matches your Sci-Fi & Drama genre preference',
-                    '✔ Highly rated by users with similar taste',
-                    '✔ Directed by one of your top directors',
-                  ].map((reason, i) => (
-                    <div key={i} className="ai-reason-item">
-                      <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{reason}</span>
+                  <div className="ai-reason-item">
+                    <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                      🤖 {activeRec.reason || 'Based on your watchlist and preferences.'}
+                    </span>
+                  </div>
+                  {activeRec.genres && (
+                    <div className="ai-reason-item">
+                      <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                        ✔ Matches your preference for {(activeRec.genres || []).slice(0, 2).join(' & ')}
+                      </span>
                     </div>
-                  ))}
+                  )}
+                  <div className="ai-reason-item">
+                    <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+                      ✔ {activeRec.match >= 80 ? 'Highly rated by users with similar taste' : 'Aligns with your viewing patterns'}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -198,27 +255,28 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
             {/* Right: Recommendation Picker */}
             <div style={{ background: 'var(--card-color)', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-xl)', padding: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>More AI Picks</div>
-              {recs.slice(0, 5).map((movie, i) => (
+              {personalizedRecs.slice(0, 8).map((movie, i) => (
                 <div
-                  key={i}
+                  key={movie.movieId || i}
                   onClick={() => setActiveRec(movie)}
                   style={{
                     display: 'flex', gap: 14, padding: '12px 16px', borderRadius: 'var(--radius-md)',
                     cursor: 'pointer', transition: 'all 0.2s ease',
-                    background: activeRec?.id === movie.id ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${activeRec?.id === movie.id ? 'rgba(99,102,241,0.4)' : 'transparent'}`,
+                    background: activeRec?.movieId === movie.movieId ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${activeRec?.movieId === movie.movieId ? 'rgba(99,102,241,0.4)' : 'transparent'}`,
                   }}
                 >
                   <div style={{
                     width: 44, height: 64, borderRadius: 8, flexShrink: 0,
-                    backgroundImage: `url(${movie.posterPath || 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=100&fit=crop'})`,
-                    backgroundSize: 'cover', backgroundPosition: 'center'
+                    backgroundImage: `url(${movie.poster || movie.posterPath || ''})`,
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                    background: movie.poster ? undefined : '#27272A'
                   }} />
                   <div style={{ flex: 1, overflow: 'hidden' }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{movie.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{(movie.genres || []).slice(0, 2).join(' • ')}</div>
                     <div style={{ fontSize: 12, color: 'var(--success-accent)', fontWeight: 700, marginTop: 4 }}>
-                      🤖 {movie.matchScore || Math.floor(85 + Math.random() * 13)}% match
+                      🤖 {movie.match || 0}% match
                     </div>
                   </div>
                 </div>
@@ -228,20 +286,35 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
         </div>
       )}
 
-      {/* Hybrid Recs */}
-      {hybridRecs.content.length > 0 && (
+      {!loading && personalizedRecs.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: 60, marginBottom: 20 }}>🎬</div>
+          <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>No Personalized Recommendations Yet</h3>
+          <p>Add movies to your watchlist, favorite some films, or watch more movies to get personalized AI recommendations!</p>
+        </div>
+      )}
+
+      {/* Full Grid of Recommendations */}
+      {personalizedRecs.length > 0 && (
         <div className="section-container">
-          <h2 className="section-title" style={{ marginBottom: 24, fontSize: 22, fontWeight: 700 }}>🧠 Because You Watched Inception</h2>
-          <div className="section-scroll-row">
-            {hybridRecs.content.map(movie => (
+          <h2 className="section-title" style={{ marginBottom: 24, fontSize: 22, fontWeight: 700 }}>🎯 All Personalized Picks</h2>
+          <div className="movie-grid">
+            {personalizedRecs.map(movie => (
               <MovieCard
-                key={movie.id || movie.movieId}
-                movie={movie}
+                key={movie.movieId}
+                movie={{
+                  ...movie,
+                  id: movie.movieId,
+                  poster_path: movie.poster ? movie.poster.replace('https://image.tmdb.org/t/p/w500', '') : null,
+                  vote_average: movie.vote_average,
+                  matchScore: movie.match,
+                  confidence: (movie.match || 0) / 100,
+                }}
                 onSelect={onSelectMovie}
                 onFavorite={onFavorite}
                 onWatchlist={onWatchlist}
-                isFavorited={favorites.includes(movie.id || movie.movieId)}
-                isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                isFavorited={favorites.includes(movie.movieId)}
+                isWatchlisted={watchlist.includes(movie.movieId)}
               />
             ))}
           </div>

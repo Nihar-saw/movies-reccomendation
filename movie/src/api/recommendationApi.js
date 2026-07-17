@@ -11,6 +11,11 @@ export const recommendationApi = {
     return response.data;
   },
 
+  getPersonalizedRecommendations: async () => {
+    const response = await axiosInstance.get('/recommendations/personalized');
+    return response.data;
+  },
+
   chat: async (prompt) => {
     const response = await axiosInstance.post('/chat', { prompt });
     return response.data;

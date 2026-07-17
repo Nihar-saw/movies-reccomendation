@@ -37,6 +37,7 @@ export const api = {
   // Recommendations API
   getRecommendations: recommendationApi.getRecommendations,
   getHybridRecommendations: recommendationApi.getHybridRecommendations,
+  getPersonalizedRecommendations: recommendationApi.getPersonalizedRecommendations,
 
   // AI Chat API
   chat: recommendationApi.chat,
