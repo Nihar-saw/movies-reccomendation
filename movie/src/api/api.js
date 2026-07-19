@@ -33,6 +33,7 @@ export const api = {
   getGenres: movieApi.getGenres,
   getMovieDetails: movieApi.getMovieDetails,
   searchMovies: movieApi.searchMovies,
+  getDiscoverMovies: movieApi.getDiscoverMovies,
 
   // Recommendations API
   getRecommendations: recommendationApi.getRecommendations,

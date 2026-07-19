@@ -22,7 +22,9 @@ const TABS = [
 
 export default function Discover({ onSelectMovie, favorites, watchlist, onFavorite, onWatchlist }) {
   const [movies, setMovies] = useState({ popular: [], nowPlaying: [], upcoming: [], topRated: [] });
+  const [genreMovies, setGenreMovies] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [genreLoading, setGenreLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('popular');
   const [selectedGenreId, setSelectedGenreId] = useState(null);
 
@@ -51,9 +53,28 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
     loadAll();
   }, []);
 
+  // Fetch genre movies dynamically when selectedGenreId changes
+  useEffect(() => {
+    if (!selectedGenreId) {
+      setGenreMovies([]);
+      return;
+    }
+    const loadGenreMovies = async () => {
+      setGenreLoading(true);
+      try {
+        const result = await api.getDiscoverMovies(selectedGenreId);
+        setGenreMovies(result.results || result || []);
+      } catch (err) {
+        console.error("Genre discover failed:", err);
+      } finally {
+        setGenreLoading(false);
+      }
+    };
+    loadGenreMovies();
+  }, [selectedGenreId]);
+
   const getFilteredMovies = (list) => {
-    if (!selectedGenreId) return list;
-    return list.filter(m => (m.genre_ids || []).includes(selectedGenreId));
+    return list;
   };
 
   const currentList = 
@@ -61,31 +82,33 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
     activeTab === 'now_playing' ? movies.nowPlaying :
     activeTab === 'upcoming' ? movies.upcoming : movies.topRated;
 
-  const filteredCurrentList = getFilteredMovies(currentList);
-  const newReleases = getFilteredMovies(movies.upcoming);
+  const filteredCurrentList = currentList;
+  const newReleases = movies.upcoming;
 
   const cardStyle = { background: 'var(--card-color)', border: '1px solid var(--card-border)', borderRadius: 16, padding: 24 };
 
   return (
     <div className="page-container" style={{ paddingTop: 24 }}>
-      {/* Category Tabs */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid var(--card-border)', paddingBottom: 12 }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            style={{
-              background: activeTab === t.id ? '#6366F1' : 'transparent',
-              color: activeTab === t.id ? 'white' : 'var(--text-secondary)',
-              border: 'none', borderRadius: 20, padding: '8px 18px', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
-            }}
-          >
-            <span>{t.emoji}</span>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {/* Category Tabs (only shown when no genre is selected) */}
+      {!selectedGenreId && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid var(--card-border)', paddingBottom: 12 }}>
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              style={{
+                background: activeTab === t.id ? '#6366F1' : 'transparent',
+                color: activeTab === t.id ? 'white' : 'var(--text-secondary)',
+                border: 'none', borderRadius: 20, padding: '8px 18px', fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.2s'
+              }}
+            >
+              <span>{t.emoji}</span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: 'var(--text-muted)' }}>
@@ -94,50 +117,87 @@ export default function Discover({ onSelectMovie, favorites, watchlist, onFavori
         </div>
       ) : (
         <>
-          {/* Main Popular Section */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800 }}>Popular Movies</h2>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{filteredCurrentList.length} matches</span>
-            </div>
-            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
-              {filteredCurrentList.map(movie => (
-                <MovieCard
-                  key={movie.id || movie.movieId}
-                  movie={movie}
-                  onSelect={onSelectMovie}
-                  onFavorite={onFavorite}
-                  onWatchlist={onWatchlist}
-                  isFavorited={favorites.includes(movie.id || movie.movieId)}
-                  isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
-                />
-              ))}
-              {filteredCurrentList.length === 0 && (
-                <div style={{ color: 'var(--text-muted)', padding: '20px 0', fontSize: 13 }}>No matches in this genre.</div>
+          {selectedGenreId ? (
+            <div style={{ marginBottom: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h2 style={{ fontSize: 22, fontWeight: 800 }}>
+                  🌟 {GENRES.find(g => g.id === selectedGenreId)?.name} Classics & Hits
+                </h2>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{genreMovies.length} titles discovered</span>
+              </div>
+              {genreLoading ? (
+                <div style={{ color: 'var(--text-muted)', padding: '40px 0', fontSize: 14, textAlign: 'center' }}>Searching database...</div>
+              ) : (
+                <div className="movie-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '24px 16px' }}>
+                  {genreMovies.map(movie => (
+                    <MovieCard
+                      key={movie.id || movie.movieId}
+                      movie={{
+                        ...movie,
+                        // Ensure cards match standard rendering structure
+                        id: movie.id || movie.movieId
+                      }}
+                      onSelect={onSelectMovie}
+                      onFavorite={onFavorite}
+                      onWatchlist={onWatchlist}
+                      isFavorited={favorites.includes(movie.id || movie.movieId)}
+                      isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                    />
+                  ))}
+                  {genreMovies.length === 0 && (
+                    <div style={{ color: 'var(--text-muted)', padding: '40px 0', fontSize: 14 }}>No matches found.</div>
+                  )}
+                </div>
               )}
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Main Popular Section */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800 }}>Popular Movies</h2>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{filteredCurrentList.length} matches</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+                  {filteredCurrentList.map(movie => (
+                    <MovieCard
+                      key={movie.id || movie.movieId}
+                      movie={movie}
+                      onSelect={onSelectMovie}
+                      onFavorite={onFavorite}
+                      onWatchlist={onWatchlist}
+                      isFavorited={favorites.includes(movie.id || movie.movieId)}
+                      isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                    />
+                  ))}
+                  {filteredCurrentList.length === 0 && (
+                    <div style={{ color: 'var(--text-muted)', padding: '20px 0', fontSize: 13 }}>No matches in this genre.</div>
+                  )}
+                </div>
+              </div>
 
-          {/* New Releases Section */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800 }}>New Releases</h2>
-              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{newReleases.length} matches</span>
-            </div>
-            <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
-              {newReleases.map(movie => (
-                <MovieCard
-                  key={movie.id || movie.movieId}
-                  movie={movie}
-                  onSelect={onSelectMovie}
-                  onFavorite={onFavorite}
-                  onWatchlist={onWatchlist}
-                  isFavorited={favorites.includes(movie.id || movie.movieId)}
-                  isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
-                />
-              ))}
-            </div>
-          </div>
+              {/* New Releases Section */}
+              <div style={{ marginBottom: 32 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 800 }}>New Releases</h2>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{newReleases.length} matches</span>
+                </div>
+                <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8 }}>
+                  {newReleases.map(movie => (
+                    <MovieCard
+                      key={movie.id || movie.movieId}
+                      movie={movie}
+                      onSelect={onSelectMovie}
+                      onFavorite={onFavorite}
+                      onWatchlist={onWatchlist}
+                      isFavorited={favorites.includes(movie.id || movie.movieId)}
+                      isWatchlisted={watchlist.includes(movie.id || movie.movieId)}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           {/* Genres Grid (Bottom) */}
           <div style={cardStyle}>
