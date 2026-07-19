@@ -17,6 +17,9 @@ import Settings from './pages/Settings.jsx';
 import Admin from './pages/Admin.jsx';
 import Auth from './pages/Auth.jsx';
 import Landing from './pages/Landing.jsx';
+import Genres from './pages/Genres.jsx';
+import Trending from './pages/Trending.jsx';
+import TopRated from './pages/TopRated.jsx';
 
 import { api } from './api/api.js';
 
@@ -91,6 +94,8 @@ export default function App() {
   const [authView, setAuthView] = useState('landing');
 
   // Restore session & load profile data
+  // Disabled auto-restore on mount so the site always starts on the landing page as requested
+  /*
   useEffect(() => {
     const loadProfile = async () => {
       const savedToken = localStorage.getItem('cineai_token');
@@ -113,6 +118,7 @@ export default function App() {
     };
     loadProfile();
   }, []);
+  */
 
   // Pre-load all movies for favorites/watchlist resolution
   useEffect(() => {
@@ -223,6 +229,9 @@ export default function App() {
       case 'discover': return <Discover {...mp} />;
       case 'search': return <Search {...mp} initialQuery={searchQuery} />;
       case 'recommendations': return <Recommendations {...mp} user={user} />;
+      case 'genres': return <Genres {...mp} />;
+      case 'trending': return <Trending {...mp} />;
+      case 'topRated': return <TopRated {...mp} />;
       case 'favorites': return <Favorites {...mp} />;
       case 'watchlist': return <Watchlist {...mp} />;
       case 'history': return <HistoryPage movies={history} onSelectMovie={handleSelectMovie} />;
