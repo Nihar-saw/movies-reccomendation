@@ -54,30 +54,33 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const loadAllMovies = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [trending, popular, topRated, upcoming] = await Promise.all([
+        api.getTrendingMovies(),
+        api.getPopularMovies(),
+        api.getTopRatedMovies(),
+        api.getUpcomingMovies(),
+      ]);
+      const trendingResults = trending.results || trending || [];
+      setMovies({
+        trending: trendingResults,
+        popular: popular.results || popular || [],
+        topRated: topRated.results || topRated || [],
+        upcoming: upcoming.results || upcoming || [],
+      });
+      if (trendingResults.length > 0) setHeroMovie(trendingResults[0]);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to fetch movies from server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadAllMovies = async () => {
-      try {
-        const [trending, popular, topRated, upcoming] = await Promise.all([
-          api.getTrendingMovies(),
-          api.getPopularMovies(),
-          api.getTopRatedMovies(),
-          api.getUpcomingMovies(),
-        ]);
-        const trendingResults = trending.results || trending || [];
-        setMovies({
-          trending: trendingResults,
-          popular: popular.results || popular || [],
-          topRated: topRated.results || topRated || [],
-          upcoming: upcoming.results || upcoming || [],
-        });
-        if (trendingResults.length > 0) setHeroMovie(trendingResults[0]);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to fetch movies from server.');
-      } finally {
-        setLoading(false);
-      }
-    };
     loadAllMovies();
   }, []);
 
@@ -110,7 +113,10 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
       <div className="page-container" style={{ textAlign: 'center', paddingTop: 80 }}>
         <div style={{ fontSize: 50, marginBottom: 16 }}>⚠️</div>
         <h2>Connection Error</h2>
-        <p style={{ color: 'var(--text-secondary)' }}>{error}</p>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>{error}</p>
+        <button className="btn btn-primary" onClick={loadAllMovies} style={{ padding: '12px 28px' }}>
+          🔄 Retry Connection
+        </button>
       </div>
     );
   }
