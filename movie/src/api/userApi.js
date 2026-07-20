@@ -64,5 +64,16 @@ export const userApi = {
     const response = await axiosInstance.get(`/ratings/user/${movieId}`);
     return response.data;
   },
+
+  // Comments
+  addComment: async (movieId, content) => {
+    const response = await axiosInstance.post('/comments', { movieId, content });
+    return response.data;
+  },
+
+  getComments: async (movieId) => {
+    const response = await axiosInstance.get(`/comments/${movieId}`);
+    return response.data;
+  },
 };
 

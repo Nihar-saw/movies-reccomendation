@@ -123,10 +123,13 @@ export default function Assistant({ user, onSelectMovie }) {
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', width: '80%', alignSelf: 'flex-start', marginTop: 4 }}>
                   {msg.movies.map(m => {
                     if (!m) return null;
-                    const poster = m.posterPath || m.poster_path;
+                    const rawPoster = m.posterPath || m.poster_path || '';
+                    const poster = rawPoster.startsWith('/') ? `https://image.tmdb.org/t/p/w300${rawPoster}` : rawPoster;
                     return (
                       <div key={m.id || m.movieId} onClick={() => onSelectMovie(m)} style={{ width: 100, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: 10, padding: 8, textAlign: 'center' }}>
-                        <div style={{ width: '100%', height: 110, borderRadius: 6, backgroundImage: `url(${poster})`, backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: 6 }} />
+                        <div style={{ width: '100%', height: 110, borderRadius: 6, backgroundImage: poster ? `url(${poster})` : 'none', backgroundColor: 'rgba(255,255,255,0.05)', backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                          {!poster && '🎬'}
+                        </div>
                         <div style={{ fontSize: 10, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title}</div>
                       </div>
                     );
@@ -164,15 +167,19 @@ export default function Assistant({ user, onSelectMovie }) {
         
         {/* Suggestion list */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, overflowY: 'auto', marginBottom: 16 }}>
-          {sideRecs.slice(0, 4).map((m, i) => (
-            <div key={m.movieId || i} onClick={() => onSelectMovie(m)} style={{ display: 'flex', gap: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: 8, borderRadius: 10, border: '1px solid var(--card-border)' }}>
-              <div style={{ width: 34, height: 50, borderRadius: 4, backgroundImage: `url(${m.poster || m.posterPath || ''})`, backgroundSize: 'cover', flexShrink: 0 }} />
+          {sideRecs.slice(0, 4).map((m, i) => {
+            const rawPoster = m.poster || m.posterPath || m.poster_path || '';
+            const poster = rawPoster.startsWith('/') ? `https://image.tmdb.org/t/p/w200${rawPoster}` : rawPoster;
+            return (
+            <div key={m.movieId || m.id || i} onClick={() => onSelectMovie(m)} style={{ display: 'flex', gap: 10, cursor: 'pointer', background: 'rgba(255,255,255,0.02)', padding: 8, borderRadius: 10, border: '1px solid var(--card-border)' }}>
+              <div style={{ width: 34, height: 50, borderRadius: 4, backgroundImage: poster ? `url(${poster})` : 'none', backgroundColor: 'rgba(255,255,255,0.05)', backgroundSize: 'cover', flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{m.title}</div>
                 <span style={{ fontSize: 10, color: 'var(--success-accent)', fontWeight: 700 }}>{m.match || 90}% Match</span>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Quick prompt list */}

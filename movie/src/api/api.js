@@ -42,5 +42,9 @@ export const api = {
 
   // AI Chat API
   chat: recommendationApi.chat,
+
+  // Comments API
+  addComment: userApi.addComment,
+  getComments: userApi.getComments,
 };
 

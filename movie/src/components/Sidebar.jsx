@@ -12,7 +12,6 @@ const NAV_GROUPS = [
   [
     { id: 'watchlist', label: 'Watchlist', icon: '🔖' },
     { id: 'favorites', label: 'Favorites', icon: '❤️' },
-    { id: 'history', label: 'History', icon: '🕒' },
   ],
   [
     { id: 'assistant', label: 'AI Assistant', icon: '🤖' },

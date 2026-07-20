@@ -40,6 +40,23 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingMessage, setRatingMessage] = useState('');
   const [fullMovieData, setFullMovieData] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState('');
+
+  // Fetch comments
+  useEffect(() => {
+    if (!movie) return;
+    const movieId = movie.id || movie.movieId;
+    api.getComments(movieId)
+      .then(res => {
+        if (res.success && res.comments) {
+          setComments(res.comments);
+        }
+      })
+      .catch(() => {});
+  }, [movie]);
 
   // Fetch full movie data (including videos for trailer) when modal opens
   useEffect(() => {
@@ -116,6 +133,25 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
       setRatingMessage('Could not save rating. Please try again.');
     } finally {
       setRatingSubmitting(false);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+    setSubmittingComment(true);
+    setCommentError('');
+    try {
+      const movieId = movie.id || movie.movieId;
+      const res = await api.addComment(movieId, newComment);
+      if (res.success && res.comment) {
+        setComments(prev => [res.comment, ...prev]);
+        setNewComment('');
+      }
+    } catch (err) {
+      setCommentError('Failed to post comment. Try again.');
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -379,7 +415,7 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                   {movieData.overview}
                 </p>
                 {reviews.length > 0 && (
-                  <>
+                  <div style={{ marginBottom: 28 }}>
                     <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>Community Reviews</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {reviews.slice(0, 3).map((rev, i) => (
@@ -389,8 +425,63 @@ export default function MovieDetailModal({ movie, onClose, onFavorite, onWatchli
                         </div>
                       ))}
                     </div>
-                  </>
+                  </div>
                 )}
+
+                {/* CineMind AI User Comments Section */}
+                <div style={{ marginTop: 28, borderTop: '1px solid var(--card-border)', paddingTop: 24 }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    💬 User Discussion <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>({comments.length})</span>
+                  </h3>
+                  
+                  {/* Write comment */}
+                  <form onSubmit={handleCommentSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+                    <textarea
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      placeholder="Share your review or start a discussion..."
+                      style={{
+                        width: '100%', minHeight: 80, background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid var(--card-border)', borderRadius: 10, padding: 12,
+                        fontSize: 13, color: 'white', resize: 'vertical', outline: 'none'
+                      }}
+                      required
+                    />
+                    {commentError && <div style={{ fontSize: 12, color: '#EF4444' }}>{commentError}</div>}
+                    <button
+                      type="submit"
+                      disabled={submittingComment || !newComment.trim()}
+                      className="btn btn-primary"
+                      style={{ alignSelf: 'flex-end', padding: '8px 16px', fontSize: 12, borderRadius: 8 }}
+                    >
+                      {submittingComment ? 'Posting...' : 'Post Review'}
+                    </button>
+                  </form>
+
+                  {/* List comments */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {comments.map((c) => (
+                      <div key={c._id || c.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--card-border)', borderRadius: 10, padding: 16 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13, color: '#818CF8' }}>@{c.userName}</span>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            {new Date(c.createdAt || Date.now()).toLocaleDateString(undefined, {
+                              month: 'short', day: 'numeric', year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                          {c.content}
+                        </p>
+                      </div>
+                    ))}
+                    {comments.length === 0 && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic', margin: 0, padding: '10px 0' }}>
+                        No reviews yet. Be the first to share your thoughts!
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

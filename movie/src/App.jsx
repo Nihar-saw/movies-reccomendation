@@ -23,62 +23,6 @@ import TopRated from './pages/TopRated.jsx';
 
 import { api } from './api/api.js';
 
-function HistoryPage({ movies, onSelectMovie }) {
-  const [historyMovies, setHistoryMovies] = useState([]);
-  
-  useEffect(() => {
-    const load = async () => {
-      const promises = movies.map(async (m) => {
-        try {
-          const res = await api.getMovieDetails(m.movieId || m.id);
-          const detail = res.movie || res.data || res;
-          return { ...detail, progress: m.progress || 60, id: detail.id || detail.movieId || m.movieId };
-        } catch (e) {
-          return null;
-        }
-      });
-      const res = await Promise.all(promises);
-      setHistoryMovies(res.filter(Boolean));
-    };
-    if (movies.length > 0) {
-      load();
-    } else {
-      setHistoryMovies([]);
-    }
-  }, [movies]);
-
-  return (
-    <div className="page-container">
-      <h1 style={{ fontSize: 38, fontWeight: 900, letterSpacing: '-1px', marginBottom: 8 }}>🕒 Continue Watching</h1>
-      <p style={{ color: 'var(--text-secondary)', fontSize: 16, marginBottom: 36 }}>Pick up where you left off.</p>
-      {historyMovies.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: 60, marginBottom: 20 }}>🕒</div>
-          <h3 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Nothing here yet</h3>
-          <p>Start watching movies and they will appear here.</p>
-        </div>
-      ) : (
-        <div className="movie-grid">
-          {historyMovies.map(m => (
-            <div key={m.id} onClick={() => onSelectMovie(m)} style={{ cursor: 'pointer' }}>
-              <div style={{ position: 'relative', height: 280, borderRadius: 'var(--radius-lg)', overflow: 'hidden', backgroundImage: `url(${m.posterPath || m.poster_path})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: '#27272A' }}>
-                  <div style={{ height: '100%', width: `${m.progress}%`, background: 'var(--primary-accent)' }} />
-                </div>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
-                <div style={{ position: 'absolute', bottom: 12, left: 12 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{m.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{m.progress}% watched</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function App() {
   const [user, setUser] = useState(null);
   const [activeView, setActiveView] = useState('home');
@@ -86,39 +30,11 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [watchlist, setWatchlist] = useState([]);
-  const [history, setHistory] = useState([]);
   const [allMovies, setAllMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Auth view state (landing, login, register)
   const [authView, setAuthView] = useState('landing');
-
-  // Restore session & load profile data
-  // Disabled auto-restore on mount so the site always starts on the landing page as requested
-  /*
-  useEffect(() => {
-    const loadProfile = async () => {
-      const savedToken = localStorage.getItem('cineai_token');
-      if (savedToken) {
-        try {
-          const res = await api.getProfile();
-          if (res.success && res.user) {
-            setUser(res.user);
-            setFavorites(res.user.favorites || []);
-            setWatchlist(res.user.watchlist || []);
-          }
-          const historyRes = await api.getHistory();
-          if (historyRes) {
-            setHistory(historyRes.history || historyRes || []);
-          }
-        } catch (e) {
-          console.error('Failed to load user profile on mount:', e);
-        }
-      }
-    };
-    loadProfile();
-  }, []);
-  */
 
   // Pre-load all movies for favorites/watchlist resolution
   useEffect(() => {
@@ -136,11 +52,24 @@ export default function App() {
     }).catch(() => {});
   }, []);
 
-  const handleLogin = (userData, userToken) => {
+  const handleLogin = async (userData, userToken) => {
     setUser(userData);
     setFavorites(userData.favorites || []);
     setWatchlist(userData.watchlist || []);
     setActiveView('home');
+
+    // After login, also load full profile from /api/auth/profile to get
+    // the most up-to-date favorites/watchlist from the database
+    try {
+      const res = await api.getProfile();
+      if (res.success && res.user) {
+        setUser(res.user);
+        setFavorites(res.user.favorites || []);
+        setWatchlist(res.user.watchlist || []);
+      }
+    } catch (e) {
+      // Login data already set above — safe to ignore
+    }
   };
 
   const handleLogout = () => {
@@ -184,12 +113,6 @@ export default function App() {
 
   const handleSelectMovie = useCallback((movie) => {
     setSelectedMovie(movie);
-    const movieId = movie.id || movie.movieId;
-    // Post to watch history endpoint
-    api.addHistory(movieId, 120, false).catch(() => {});
-    setHistory(prev => {
-      return prev.find(m => (m.id || m.movieId) === movieId) ? prev : [movie, ...prev].slice(0, 20);
-    });
   }, []);
 
   const handleSearch = useCallback((q) => {
@@ -204,21 +127,11 @@ export default function App() {
     return <Auth initialMode={authView} onLogin={handleLogin} onBack={() => setAuthView('landing')} />;
   }
 
-  const handleRemoveHistory = async (movieId) => {
-    try {
-      await api.removeHistory(movieId);
-      setHistory(prev => prev.filter(m => m.movieId !== movieId && m.id !== movieId));
-    } catch (error) {
-      console.error("Failed to remove history:", error);
-    }
-  };
-
   const mp = {
     onSelectMovie: handleSelectMovie,
-    favorites, watchlist, history, user,
+    favorites, watchlist, user,
     onFavorite: handleFavorite,
     onWatchlist: handleWatchlist,
-    onRemoveHistory: handleRemoveHistory,
     movies: allMovies,
     setActiveView,
   };
@@ -234,9 +147,8 @@ export default function App() {
       case 'topRated': return <TopRated {...mp} />;
       case 'favorites': return <Favorites {...mp} />;
       case 'watchlist': return <Watchlist {...mp} />;
-      case 'history': return <HistoryPage movies={history} onSelectMovie={handleSelectMovie} />;
       case 'assistant': return <Assistant user={user} onSelectMovie={handleSelectMovie} />;
-      case 'profile': return <Profile {...mp} user={user} history={history} />;
+      case 'profile': return <Profile {...mp} user={user} />;
       case 'settings': return <Settings />;
       case 'admin': return <Admin />;
       default: return <Home {...mp} />;
@@ -275,4 +187,3 @@ export default function App() {
     </div>
   );
 }
-
