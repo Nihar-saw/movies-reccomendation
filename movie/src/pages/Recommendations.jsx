@@ -309,67 +309,32 @@ export default function Recommendations({ onSelectMovie, user, favorites, watchl
         </div>
       </div>
 
-      {/* ===== ROW 3: Pipeline + Watchlist Influence + Mood Recommendations ===== */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: 16, marginBottom: 16 }}>
-
-        {/* How Our AI Recommendation Engine Works */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 20 }}>How Our AI Recommendation Engine Works</div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4 }}>
-            <PipelineStep icon="📊" label="Your Data" sub="Watchlist, Ratings, History, Favorites" />
-            <div style={{ color: 'var(--text-muted)', fontSize: 18, marginTop: 12 }}>→</div>
-            <PipelineStep icon="🧠" label="AI Analysis" sub="Patterns, Preferences, Behaviors" />
-            <div style={{ color: 'var(--text-muted)', fontSize: 18, marginTop: 12 }}>→</div>
-            <PipelineStep icon="📐" label="Taste Vector" sub="5000-dim TF-IDF" />
-            <div style={{ color: 'var(--text-muted)', fontSize: 18, marginTop: 12 }}>→</div>
-            <PipelineStep icon="🎬" label="MovieLens" sub="Database" />
-            <div style={{ color: 'var(--text-muted)', fontSize: 18, marginTop: 12 }}>→</div>
-            <PipelineStep icon="🌐" label="TMDB" sub="Metadata" />
-            <div style={{ color: 'var(--text-muted)', fontSize: 18, marginTop: 12 }}>→</div>
-            <PipelineStep icon="⭐" label="Personalized" sub="Movies" />
-          </div>
-        </div>
-
-        {/* Your Watchlist Influence */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Your Watchlist Influence</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>See how your watchlist shapes your recommendations</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(history || []).slice(0, 5).map((m, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.title || `Movie #${m.movieId || m.id}`}</span>
-                <div style={{ display: 'flex', gap: 2 }}>{[...Array(5)].map((_, s) => <span key={s} style={{ fontSize: 10, color: s < 4 ? '#F59E0B' : 'rgba(255,255,255,0.1)' }}>★</span>)}</div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1', width: 32, textAlign: 'right' }}>{Math.max(5, 35 - i * 5)}%</span>
-              </div>
-            ))}
-            {(!history || history.length === 0) && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>No watch history yet.</div>}
-          </div>
-        </div>
-
+      {/* ===== ROW 3: Mood Recommendations (Full Width) ===== */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16, marginBottom: 16 }}>
         {/* Mood Recommendations */}
         <div style={cardStyle}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>Mood Recommendations</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 14 }}>Explore movies based on your mood</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Mood Recommendations</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Explore movies based on your mood</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             {MOOD_TAGS.map(mood => (
               <button key={mood} onClick={() => fetchMoodRecs(mood)} style={{
                 background: activeMood === mood ? '#6366F1' : 'rgba(99,102,241,0.15)', color: activeMood === mood ? 'white' : '#6366F1',
-                border: 'none', borderRadius: 20, padding: '6px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
               }}>{mood}</button>
             ))}
           </div>
-          {moodLoading && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading mood recommendations...</div>}
+          {moodLoading && <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>Loading mood recommendations...</div>}
           {!moodLoading && moodRecs.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
-              {moodRecs.slice(0, 4).map((m, i) => (
-                <div key={m.id || i} style={{ flexShrink: 0, width: 60, cursor: 'pointer' }} onClick={() => onSelectMovie(m)}>
-                  <div style={{ width: 60, height: 90, borderRadius: 8, backgroundImage: `url(https://image.tmdb.org/t/p/w200${m.poster_path})`, backgroundSize: 'cover' }} />
-                  <div style={{ fontSize: 9, fontWeight: 600, marginTop: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+            <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
+              {moodRecs.slice(0, 10).map((m, i) => (
+                <div key={m.id || i} style={{ flexShrink: 0, width: 100, cursor: 'pointer' }} onClick={() => onSelectMovie(m)}>
+                  <div style={{ width: 100, height: 140, borderRadius: 10, backgroundImage: `url(https://image.tmdb.org/t/p/w200${m.poster_path})`, backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--card-border)' }} />
+                  <div style={{ fontSize: 11, fontWeight: 700, marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
                 </div>
               ))}
             </div>
           )}
-          <button onClick={() => { setActiveMood(null); setMoodRecs([]); fetchMoodRecs(MOOD_TAGS[Math.floor(Math.random() * MOOD_TAGS.length)]); }} style={{ marginTop: 10, background: 'none', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '6px 14px', fontSize: 11, color: '#6366F1', cursor: 'pointer', fontWeight: 600 }}>
+          <button onClick={() => { setActiveMood(null); setMoodRecs([]); fetchMoodRecs(MOOD_TAGS[Math.floor(Math.random() * MOOD_TAGS.length)]); }} style={{ marginTop: 14, background: 'none', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 8, padding: '8px 16px', fontSize: 11, color: '#6366F1', cursor: 'pointer', fontWeight: 700 }}>
             🔄 Refresh recommendations
           </button>
         </div>

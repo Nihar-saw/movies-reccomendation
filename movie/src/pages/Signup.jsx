@@ -1,9 +1,9 @@
 import GoogleLoginButton from "../components/GoogleLoginButton";
 
-export default function Login() {
+export default function Signup() {
   return (
     <>
-      {/* Email Login */}
+      {/* Signup Form */}
 
       <GoogleLoginButton />
     </>

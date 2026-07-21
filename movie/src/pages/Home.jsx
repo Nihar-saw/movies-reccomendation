@@ -129,6 +129,32 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
 
   return (
     <div className="page-container" style={{ paddingTop: 24 }}>
+      {/* Dashboard Header with Refresh */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', margin: 0 }}>
+            Welcome back, {user?.name?.split(' ')[0] || 'Movie Lover'} 👋
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+            Here's your personalized dashboard
+          </p>
+        </div>
+        <button
+          onClick={loadAllMovies}
+          disabled={loading}
+          style={{
+            background: 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+            color: 'white', border: 'none', borderRadius: 12, padding: '10px 20px',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex',
+            alignItems: 'center', gap: 8, transition: 'all 0.2s',
+            opacity: loading ? 0.6 : 1,
+          }}
+        >
+          <span style={{ display: 'inline-block', animation: loading ? 'spin 1s linear infinite' : 'none' }}>🔄</span>
+          {loading ? 'Refreshing...' : 'Refresh Movies'}
+        </button>
+      </div>
+
       {/* ROW 1: Hero Widget + AI Taste Profile */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16, marginBottom: 16 }}>
         {/* Hero Widget */}
@@ -248,18 +274,6 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
             </div>
           </div>
         ))}
-      </div>
-
-      {/* ROW 4: Premium Banner */}
-      <div style={{ background: 'linear-gradient(to right, #2A1D3C, #1C1C24)', borderRadius: 20, padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ width: 40, height: 40, background: 'linear-gradient(135deg, #8B5CF6, #D946EF)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>⭐</div>
-          <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Upgrade to Premium</h3>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 12 }}>Unlock unlimited AI recommendations, advanced filters and early access.</p>
-          </div>
-        </div>
-        <button className="btn btn-primary" style={{ padding: '10px 20px', fontSize: 13, background: 'linear-gradient(135deg, #8B5CF6, #D946EF)' }}>⭐ Upgrade Now</button>
       </div>
     </div>
   );

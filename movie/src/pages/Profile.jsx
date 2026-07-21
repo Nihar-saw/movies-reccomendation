@@ -48,7 +48,6 @@ export default function Profile({ user, favorites, watchlist, history, onSelectM
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
             <h1 style={{ fontSize: 26, fontWeight: 900, margin: 0 }}>{user?.name || 'Nihar Sawant'}</h1>
-            <span style={{ background: 'rgba(99,102,241,0.2)', color: '#818CF8', padding: '2px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>Premium Member</span>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '0 0 16px 0' }}>Joined May 2024 · {user?.email}</p>
           

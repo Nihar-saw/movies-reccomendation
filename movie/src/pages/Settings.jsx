@@ -20,7 +20,7 @@ const SETTINGS_SECTIONS = [
   {
     title: ' Appearance',
     items: [
-      { key: 'darkMode', label: 'Dark Mode', desc: 'Enable the premium dark cinematic interface', locked: true },
+      { key: 'darkMode', label: 'Dark Mode', desc: 'Enable the dark cinematic interface' },
       { key: 'reducedMotion', label: 'Reduce Animations', desc: 'Minimize motion effects for accessibility' },
       { key: 'compactView', label: 'Compact Movie Cards', desc: 'Display smaller movie cards to see more at once' },
     ]

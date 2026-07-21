@@ -86,33 +86,6 @@ export default function Sidebar({ activeView, setActiveView, collapsed, setColla
         ))}
       </nav>
 
-      {/* Bottom Section: Premium Card */}
-      <div className="sidebar-bottom">
-        {!collapsed && (
-          <div className="bg-accent-gradient" style={{ borderRadius: 16, padding: 20, margin: '10px 8px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h4 style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>Upgrade to Premium</h4>
-            <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.4 }}>
-              Unlock advanced AI recommendations and exclusive features.
-            </p>
-            <button style={{ 
-              background: 'linear-gradient(to right, #8B5CF6, #D946EF)', 
-              color: 'white', 
-              border: 'none', 
-              padding: '10px', 
-              borderRadius: 8, 
-              fontWeight: 600, 
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              marginTop: 4
-            }}>
-              ⭐ Upgrade Now
-            </button>
-          </div>
-        )}
-      </div>
     </aside>
   );
 }

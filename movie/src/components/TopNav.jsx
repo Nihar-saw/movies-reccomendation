@@ -103,7 +103,6 @@ export default function TopNav({ user, setActiveView, onSearch, onLogout }) {
               <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Nihar Sawant" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>Nihar Sawant</span>
-                <span style={{ fontSize: 11, color: '#D946EF', fontWeight: 600 }}>Premium</span>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9"></polyline>

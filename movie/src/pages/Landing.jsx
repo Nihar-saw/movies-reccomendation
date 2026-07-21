@@ -17,7 +17,6 @@ export default function Landing({ onAuthClick }) {
           <span onClick={() => onAuthClick('register')}>Home</span>
           <span onClick={() => onAuthClick('register')}>Features</span>
           <span onClick={() => onAuthClick('register')}>AI Assistant</span>
-          <span onClick={() => onAuthClick('register')}>Premium</span>
           <span onClick={() => onAuthClick('register')}>About</span>
         </div>
         <div className="landing-actions">
@@ -161,8 +160,6 @@ export default function Landing({ onAuthClick }) {
             <h4>Product</h4>
             <span onClick={() => onAuthClick('register')}>Features</span>
             <span onClick={() => onAuthClick('register')}>AI Recommendations</span>
-            <span onClick={() => onAuthClick('register')}>Premium</span>
-            <span onClick={() => onAuthClick('register')}>Pricing</span>
           </div>
           <div className="footer-column">
             <h4>Company</h4>
