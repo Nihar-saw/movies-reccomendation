@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/api.js';
 import './Auth.css';
+import GoogleLoginButton from '../components/GoogleLoginButton';
 
 export default function Auth({ onLogin, initialMode = 'login', onBack }) {
   const [mode, setMode] = useState(initialMode);
@@ -99,9 +100,7 @@ export default function Auth({ onLogin, initialMode = 'login', onBack }) {
           </div>
 
           <div className="social-auth-buttons">
-            <button className="btn-social" onClick={() => alert('Google authentication is coming soon! Please use email for now.')}>
-              <span className="social-icon-placeholder">G</span> Continue with Google
-            </button>
+            <GoogleLoginButton onLogin={onLogin} onError={setError} />
             <button className="btn-social" onClick={() => alert('Apple authentication is coming soon! Please use email for now.')}>
               <span className="social-icon-placeholder">🍎</span> Continue with Apple
             </button>
