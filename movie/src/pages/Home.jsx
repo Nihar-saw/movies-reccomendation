@@ -54,15 +54,17 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const loadAllMovies = async () => {
+  const loadAllMovies = async (isInitial = false) => {
+    const isInit = isInitial === true;
     setLoading(true);
     setError(null);
     try {
+      const page = isInit ? 1 : Math.floor(Math.random() * 10) + 1;
       const [trending, popular, topRated, upcoming] = await Promise.all([
-        api.getTrendingMovies(),
-        api.getPopularMovies(),
-        api.getTopRatedMovies(),
-        api.getUpcomingMovies(),
+        api.getTrendingMovies(page),
+        api.getPopularMovies(page),
+        api.getTopRatedMovies(page),
+        api.getUpcomingMovies(page),
       ]);
       const trendingResults = trending.results || trending || [];
       setMovies({
@@ -71,7 +73,10 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
         topRated: topRated.results || topRated || [],
         upcoming: upcoming.results || upcoming || [],
       });
-      if (trendingResults.length > 0) setHeroMovie(trendingResults[0]);
+      if (trendingResults.length > 0) {
+        const index = isInit ? 0 : Math.floor(Math.random() * trendingResults.length);
+        setHeroMovie(trendingResults[index]);
+      }
     } catch (err) {
       console.error(err);
       setError('Failed to fetch movies from server.');
@@ -81,7 +86,7 @@ export default function Home({ onSelectMovie, favorites, watchlist, onFavorite, 
   };
 
   useEffect(() => {
-    loadAllMovies();
+    loadAllMovies(true);
   }, []);
 
   // Build taste profile data from favorites/watchlist genres
